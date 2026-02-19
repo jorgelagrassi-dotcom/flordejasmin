@@ -1,0 +1,440 @@
+/* ==============================
+   VARIÁVEIS
+============================== */
+:root {
+  --bg-main: #0b1220;
+  --bg-gradient: linear-gradient(180deg, #0b1220, #0f172a);
+  --bg-card: rgba(30, 41, 59, 0.85);
+  --bg-input: #0f172a;
+
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+
+  --success: #22c55e;
+  --danger: #ef4444;
+  --warning: #fbbf24;
+
+  --text-main: #e2e8f0;
+  --text-muted: #94a3b8;
+
+  --border-soft: rgba(255, 255, 255, 0.05);
+}
+
+/* ==============================
+   BASE
+============================== */
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: var(--bg-gradient);
+  color: var(--text-main);
+}
+
+input[type="text"],
+textarea {
+  text-transform: uppercase;
+}
+
+#app {
+  max-width: 1200px;
+  margin: auto;
+  padding: 16px;
+}
+
+@media (min-width: 1400px) {
+  #app {
+    max-width: 1400px;
+  }
+}
+
+/* ==============================
+   TOPBAR
+============================== */
+.topbar {
+  background: var(--bg-card);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--border-soft);
+  padding: 15px 20px;
+  border-radius: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.topbar-right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.user-email {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* ==============================
+   MENU
+============================== */
+.menu {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.menu::-webkit-scrollbar {
+  height: 6px;
+}
+
+.menu::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 10px;
+}
+
+.menu-btn {
+  background: #334155;
+  border: none;
+  color: white;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  white-space: nowrap;
+  transition: 0.2s;
+}
+
+.menu-btn:hover {
+  background: #475569;
+}
+
+.menu-btn.active {
+  background: var(--accent);
+}
+
+/* ==============================
+   CARDS
+============================== */
+.screen {
+  margin-top: 20px;
+}
+
+.hidden {
+  display: none;
+}
+
+.card {
+  background: var(--bg-card);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--border-soft);
+  padding: 20px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  box-shadow: 0px 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.card h2 {
+  margin-top: 0;
+}
+
+.subtitle {
+  opacity: 0.8;
+  margin-top: -10px;
+  margin-bottom: 20px;
+}
+
+/* ==============================
+   FORMULÁRIOS
+============================== */
+.form-grid {
+  display: grid;
+  gap: 15px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  margin-bottom: 6px;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+input,
+select {
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: var(--bg-input);
+  color: white;
+  outline: none;
+  transition: 0.2s;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--accent);
+}
+
+input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ==============================
+   BOTÕES
+============================== */
+.btn {
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 15px;
+  transition: 0.2s;
+}
+
+.btn-success {
+  background: var(--success);
+  color: #0f172a;
+}
+
+.btn-success:hover {
+  opacity: 0.9;
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: white;
+}
+
+.btn-secondary {
+  background: #64748b;
+  color: white;
+}
+
+/* ==============================
+   MENSAGENS
+============================== */
+.msg {
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+/* ==============================
+   DASHBOARD
+============================== */
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 15px;
+}
+
+.stat {
+  background: var(--bg-input);
+  padding: 20px;
+  border-radius: 14px;
+  text-align: center;
+}
+
+.stat-title {
+  display: block;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.stat-value {
+  display: block;
+  font-size: 28px;
+  font-weight: bold;
+  margin-top: 10px;
+  color: var(--success);
+}
+
+/* ==============================
+   TABELAS
+============================== */
+.table-wrapper {
+  overflow-x: auto;
+  margin-top: 15px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+th {
+  text-align: left;
+  padding: 12px;
+  background: var(--bg-input);
+  font-size: 13px;
+}
+
+td {
+  padding: 12px;
+  border-bottom: 1px solid #334155;
+  font-size: 14px;
+}
+
+tr:hover {
+  background: rgba(37, 99, 235, 0.08);
+}
+
+/* ==============================
+   ESTOQUE
+============================== */
+.stock-ok {
+  color: #38bdf8;
+  font-weight: bold;
+}
+
+.stock-zero {
+  color: var(--danger);
+  font-weight: bold;
+}
+
+/* ==============================
+   FOTO PRODUTO
+============================== */
+.product-photo {
+  width: 45px;
+  height: 45px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #334155;
+}
+
+/* ==============================
+   BOTÕES DE AÇÃO
+============================== */
+.action-btn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  margin-right: 5px;
+}
+
+.action-edit {
+  background: var(--accent);
+  color: white;
+}
+
+.action-hide {
+  background: var(--danger);
+  color: white;
+}
+
+/* ==============================
+   RELATÓRIOS
+============================== */
+.report-day-header {
+  background: linear-gradient(90deg, #2563eb, #1e40af);
+  padding: 14px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 8px;
+}
+
+.report-day-total {
+  background: var(--bg-input);
+  padding: 15px;
+}
+
+.day-total-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.day-total-grid div {
+  background: #1e293b;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.day-total-final {
+  background: #16a34a !important;
+  color: white;
+  font-size: 14px;
+}
+
+/* ==============================
+   MOBILE REAL
+============================== */
+@media (max-width: 768px) {
+
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  thead {
+    display: none;
+  }
+
+  table,
+  tbody,
+  tr,
+  td {
+    display: block;
+    width: 100%;
+  }
+
+  tr {
+    margin-bottom: 14px;
+    background: var(--bg-input);
+    border-radius: 10px;
+    padding: 12px;
+  }
+
+  td {
+    padding: 6px 0;
+    border: none;
+    font-size: 14px;
+  }
+
+  td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    display: block;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+    font-size: 12px;
+  }
+}
+
+/* ==============================
+   FOOTER
+============================== */
+.footer {
+  text-align: center;
+  opacity: 0.7;
+  margin-top: 20px;
+  font-size: 13px;
+}

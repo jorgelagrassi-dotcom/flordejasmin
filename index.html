@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fluxo de Caixa - Loja</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <h1>📦 Fluxo de Caixa - Loja</h1>
+
+        <div class="topbar-right">
+          <span id="userEmail" class="user-email"></span>
+          <button id="btnLogout" class="btn btn-danger hidden">Sair</button>
+        </div>
+      </header>
+
+      <!-- LOGIN -->
+      <section id="screenLogin" class="screen">
+        <div class="card">
+          <h2>Login</h2>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="loginEmail" placeholder="Seu email" />
+            </div>
+
+            <div class="form-group">
+              <label>Senha</label>
+              <input type="password" id="loginPassword" placeholder="Sua senha" />
+            </div>
+          </div>
+
+          <button id="btnLogin" class="btn btn-success">Entrar</button>
+
+          <p id="loginMsg" class="msg"></p>
+        </div>
+      </section>
+
+      <!-- SISTEMA -->
+      <section id="screenSystem" class="screen hidden">
+        <nav class="menu">
+          <button class="menu-btn active" data-tab="tabDashboard">Dashboard</button>
+          <button class="menu-btn" data-tab="tabProducts">Produtos</button>
+          <button class="menu-btn" data-tab="tabStock">Estoque</button>
+          <button class="menu-btn" data-tab="tabSales">Vendas</button>
+          <button class="menu-btn" data-tab="tabCount">Contagem</button>
+          <button class="menu-btn" data-tab="tabReports">Relatórios</button>
+        </nav>
+
+        <!-- DASHBOARD -->
+        <div id="tabDashboard" class="tab">
+          <div class="card">
+            <h2>📊 Dashboard</h2>
+            <p class="subtitle">Resumo geral do sistema</p>
+
+            <div class="grid-3">
+              <div class="stat">
+                <span class="stat-title">Produtos Ativos</span>
+                <span id="statProducts" class="stat-value">0</span>
+              </div>
+
+              <div class="stat">
+                <span class="stat-title">Vendas</span>
+                <span id="statSales" class="stat-value">0</span>
+              </div>
+
+              <div class="stat">
+                <span class="stat-title">Total Vendido</span>
+                <span id="statSalesTotal" class="stat-value">R$ 0,00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PRODUTOS -->
+        <div id="tabProducts" class="tab hidden">
+          <div class="card">
+            <h2>📦 Cadastro de Produtos</h2>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Nome do Produto</label>
+                <input type="text" id="productName" placeholder="Ex: Travesseiro de Dormir" />
+              </div>
+
+              <div class="form-group">
+                <label>Preço (R$)</label>
+                <input type="number" id="productPrice" placeholder="35.00" />
+              </div>
+
+              <div class="form-group">
+                <label>Estoque Inicial LOJA</label>
+                <input type="number" id="productStockLoja" placeholder="0" />
+              </div>
+
+              <div class="form-group">
+                <label>Estoque Inicial BALCÃO</label>
+                <input type="number" id="productStockBalcao" placeholder="0" />
+              </div>
+
+              <div class="form-group">
+                <label>Estoque Inicial ONLINE</label>
+                <input type="number" id="productStockOnline" placeholder="0" />
+              </div>
+
+              <div class="form-group">
+                <label>Foto do Produto</label>
+                <input type="file" id="productPhoto" accept="image/*" capture="environment" />
+                <small class="help">
+                  Você pode tirar foto pelo celular ou escolher da galeria.
+                </small>
+              </div>
+            </div>
+
+            <button id="btnAddProduct" class="btn btn-success">Cadastrar Produto</button>
+
+            <p id="productMsg" class="msg"></p>
+          </div>
+
+          <div class="card">
+            <h2>🔎 Lista de Produtos</h2>
+
+            <input type="text" id="productSearch" placeholder="Pesquisar produto (ex: TRAV)" />
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Foto</th>
+                    <th>Código</th>
+                    <th>Produto</th>
+                    <th>Preço</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="productList"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ESTOQUE -->
+        <div id="tabStock" class="tab hidden">
+          <div class="card">
+            <h2>📦 Estoque / Reposição</h2>
+
+            <div class="form-group">
+              <label>Pesquisar Produto</label>
+              <input type="text" id="entrySearch" placeholder="Digite TRAV para achar travesseiros" />
+              <div id="entrySuggestions" class="suggestions"></div>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Local</label>
+                <select id="entryLocation">
+                  <option value="LOJA">LOJA</option>
+                  <option value="BALCAO">BALCÃO</option>
+                  <option value="ONLINE">ONLINE</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Quantidade</label>
+                <input type="number" id="entryQty" placeholder="Ex: 10" />
+              </div>
+
+              <div class="form-group">
+                <label>Data e Hora (Obrigatório)</label>
+                <input type="datetime-local" id="entryDateTime" />
+              </div>
+            </div>
+
+            <button id="btnAddEntry" class="btn btn-success">Confirmar Reposição</button>
+
+            <p id="entryMsg" class="msg"></p>
+          </div>
+
+          <div class="card">
+            <h2>📌 Estoque Atual</h2>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Filtrar Produto</label>
+                <input type="text" id="stockFilterName" placeholder="Ex: TRAV" />
+              </div>
+
+              <div class="form-group">
+                <label>Local</label>
+                <select id="stockFilterLocation">
+                  <option value="">TODOS</option>
+                  <option value="LOJA">LOJA</option>
+                  <option value="BALCAO">BALCÃO</option>
+                  <option value="ONLINE">ONLINE</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Produto</th>
+                    <th>Local</th>
+                    <th>Quantidade</th>
+                    <th>Última Atualização</th>
+                  </tr>
+                </thead>
+                <tbody id="stockList"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- VENDAS -->
+        <div id="tabSales" class="tab hidden">
+          <div class="card">
+            <h2>💰 Registrar Venda</h2>
+
+            <div class="form-group">
+              <label>Pesquisar Produto</label>
+              <input type="text" id="saleSearch" placeholder="Digite TRAV para achar travesseiros" />
+              <div id="saleSuggestions" class="suggestions"></div>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Local da Venda</label>
+                <select id="saleLocation">
+                  <option value="LOJA">LOJA</option>
+                  <option value="BALCAO">BALCÃO</option>
+                  <option value="ONLINE">ONLINE</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Quantidade</label>
+                <input type="number" id="saleQty" placeholder="Ex: 2" />
+              </div>
+
+              <div class="form-group">
+                <label>Forma de Pagamento</label>
+                <select id="salePayment">
+                  <option value="PIX">PIX</option>
+                  <option value="DINHEIRO">DINHEIRO</option>
+                  <option value="MAQUINA_LOJA">MÁQUINA LOJA</option>
+                  <option value="MAQUINA_BALCAO">MÁQUINA BALCÃO</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Data e Hora (Obrigatório)</label>
+                <input type="datetime-local" id="saleDateTime" />
+              </div>
+
+              <div class="form-group">
+                <label>Observação (opcional)</label>
+                <input type="text" id="saleNote" placeholder="Ex: cliente pediu embalagem" />
+              </div>
+            </div>
+
+            <button id="btnAddSale" class="btn btn-success">Confirmar Venda</button>
+
+            <p id="saleMsg" class="msg"></p>
+          </div>
+        </div>
+
+        <!-- CONTAGEM -->
+<div id="tabCount" class="tab hidden">
+  <div class="card">
+    <h2>📦 Contagem por Local</h2>
+
+    <div class="form-grid">
+
+      <div class="form-group">
+        <label>Local</label>
+        <select id="countLocation">
+          <option value="">Selecione...</option>
+          <option value="LOJA">LOJA</option>
+          <option value="BALCAO">BALCÃO</option>
+          <option value="ONLINE">ONLINE</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Data e Hora da Contagem</label>
+        <input type="datetime-local" id="countDateTime" />
+      </div>
+
+    </div>
+
+    <div class="table-wrapper" style="margin-top:20px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Estoque Atual<br><small>Data/Hora</small></th>
+            <th>Nova Contagem</th>
+            <th>Diferença</th>
+          </tr>
+        </thead>
+        <tbody id="countTableBody">
+          <!-- Será preenchido via JavaScript -->
+        </tbody>
+      </table>
+    </div>
+
+    <button id="btnSaveCount" class="btn btn-success" style="margin-top:20px;">
+      Registrar Contagem do Local
+    </button>
+
+    <p id="countMsg" class="msg"></p>
+
+  </div>
+</div>
+
+
+            
+
+            <p id="countMsg" class="msg"></p>
+          </div>
+        </div>
+
+        <!-- RELATÓRIOS -->
+        <div id="tabReports" class="tab hidden">
+          <div class="card">
+            <h2>📑 Relatórios</h2>
+            <div class="form-grid" style="margin-bottom:20px;">
+
+              <div class="form-group">
+                <label>Filtrar por Local</label>
+                <select id="filterSaleLocation">
+                  <option value="">TODOS</option>
+                  <option value="LOJA">LOJA</option>
+                  <option value="BALCAO">BALCÃO</option>
+                  <option value="ONLINE">ONLINE</option>
+                </select>
+              </div>
+            
+              <div class="form-group">
+                <label>Forma de Pagamento</label>
+                <select id="filterSalePayment">
+                  <option value="">TODOS</option>
+                  <option value="PIX">PIX</option>
+                  <option value="DINHEIRO">DINHEIRO</option>
+                  <option value="MAQUINA_LOJA">MÁQUINA LOJA</option>
+                  <option value="MAQUINA_BALCAO">MÁQUINA BALCÃO</option>
+                </select>
+              </div>
+            
+              <div class="form-group">
+                <label>Data Inicial</label>
+                <input type="datetime-local" id="filterSaleStart">
+              </div>
+            
+              <div class="form-group">
+                <label>Data Final</label>
+                <input type="datetime-local" id="filterSaleEnd">
+              </div>
+            
+            </div>
+            
+            
+          </div>
+
+          <div class="card">
+            <h2>📌 Lista de Vendas</h2>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Produto</th>
+                    <th>Local</th>
+                    <th>Qtd</th>
+                    <th>Total</th>
+                    <th>Pagamento</th>
+                    <th>Data</th>
+                  </tr>
+                </thead>
+                <tbody id="reportList"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <p>Sistema Fluxo Caixa - Firebase + GitHub Pages</p>
+      </footer>
+    </div>
+
+    <script type="module" src="firebase.js"></script>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
