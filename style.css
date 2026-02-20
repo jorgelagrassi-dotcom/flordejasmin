@@ -1,23 +1,32 @@
 /* ==============================
-   VARIÁVEIS
+   VARIÁVEIS - FLOR DE JASMIN LIGHT
 ============================== */
 :root {
-  --bg-main: #0b1220;
-  --bg-gradient: linear-gradient(180deg, #0b1220, #0f172a);
-  --bg-card: rgba(30, 41, 59, 0.85);
-  --bg-input: #0f172a;
 
-  --accent: #2563eb;
-  --accent-hover: #1d4ed8;
+  /* Fundos inspirados no logo */
+  --bg-main: #f8fafc;
+  --bg-gradient: linear-gradient(180deg, #ffffff, #f1f5f9);
+  --bg-card: #ffffff;
+  --bg-input: #f1f5f9;
 
+  /* 🌸 Azul pétala principal */
+  --accent: #1e90c2;
+  --accent-hover: #1677a6;
+
+  /* Degradê oficial da marca */
+  --brand-gradient: linear-gradient(90deg, #ff7a18, #ff3c7a);
+
+  /* Estados */
   --success: #22c55e;
   --danger: #ef4444;
-  --warning: #fbbf24;
+  --warning: #f59e0b;
 
-  --text-main: #e2e8f0;
-  --text-muted: #94a3b8;
+  /* Texto */
+  --text-main: #1f2937; /* grafite */
+  --text-muted: #6b7280;
 
-  --border-soft: rgba(255, 255, 255, 0.05);
+  /* Bordas suaves */
+  --border-soft: rgba(0, 0, 0, 0.06);
 }
 
 /* ==============================
@@ -172,11 +181,19 @@ input,
 select {
   padding: 10px;
   border-radius: 10px;
-  border: 1px solid transparent;
-  background: var(--bg-input);
-  color: white;
+  border: 1px solid #334155; /* borda visível */
+  background: #111827; /* fundo um pouco mais claro que o bg geral */
+  color: #f8fafc; /* branco mais suave */
   outline: none;
   transition: 0.2s;
+}
+
+/* Destaque ao focar */
+input:focus,
+select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+  background: #0f172a;
 }
 
 input:focus,
@@ -437,4 +454,24 @@ tr:hover {
   opacity: 0.7;
   margin-top: 20px;
   font-size: 13px;
+}
+/* ==============================
+   LOGO TOPO
+============================== */
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-small {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+
+.topbar h1 {
+  font-size: 18px;
+  font-weight: 600;
 }

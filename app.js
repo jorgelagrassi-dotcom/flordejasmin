@@ -73,6 +73,75 @@ const btnAddSale = document.getElementById("btnAddSale");
 const saleMsg = document.getElementById("saleMsg");
 
 /* ==============================
+   💰 REGISTRAR VENDA
+============================== */
+
+if (btnAddSale) {
+  btnAddSale.addEventListener("click", async () => {
+    saleMsg.innerText = "";
+
+    if (!selectedSaleProduct) {
+      showMsg(saleMsg, "Selecione um produto válido.", "#f87171");
+      return;
+    }
+
+    const location = saleLocation.value;
+    const qty = parseInt(saleQty.value);
+    const payment = salePayment.value;
+    const dateTime = saleDateTime.value;
+    const note = saleNote.value;
+
+    if (!qty || qty <= 0) {
+      showMsg(saleMsg, "Quantidade inválida.", "#f87171");
+      return;
+    }
+
+    const currentStock = await getStock(selectedSaleProduct.id, location);
+
+    if (qty > currentStock) {
+      showMsg(
+        saleMsg,
+        `Estoque insuficiente. Disponível: ${currentStock}`,
+        "#f87171"
+      );
+      return;
+    }
+
+    const total = qty * selectedSaleProduct.price;
+
+    await addDoc(collection(db, "sales"), {
+      productId: selectedSaleProduct.id,
+      productName: selectedSaleProduct.name,
+      location,
+      quantity: qty,
+      unitPrice: selectedSaleProduct.price,
+      total,
+      paymentMethod: payment,
+      note,
+      createdAt: todayISOFromLocal(dateTime),
+    });
+
+    await updateStock(
+      selectedSaleProduct.id,
+      selectedSaleProduct.name,
+      location,
+      -qty
+    );
+
+    saleSearch.value = "";
+    saleQty.value = "";
+    saleNote.value = "";
+    selectedSaleProduct = null;
+
+    showMsg(saleMsg, "Venda registrada com sucesso!", "#4ade80");
+
+    await loadStock();
+    await loadDashboard();
+    await loadReports();
+  });
+}
+
+/* ==============================
    CONTAGEM
 ============================== */
 const countLocation = document.getElementById("countLocation");
@@ -116,14 +185,13 @@ async function saveCount() {
     const delta = newQty - currentQty;
 
     // Se não houve alteração, ignora
-    if (delta === 0) continue;
+if (delta === 0) continue;
 
-    const productSnap = await getDocs(collection(db, "products"));
-    const product = productSnap.docs
-      .map((d) => ({ id: d.id, ...d.data() }))
-      .find((p) => p.id === productId);
+// Busca produto na memória (já carregado)
+const product = PRODUCTS.find((p) => p.id === productId);
 
-    if (!product) continue;
+if (!product) continue;
+
 
     // Se diminuiu estoque → gerar venda automática HOTEL
     if (delta < 0) {
@@ -184,8 +252,6 @@ filterSaleLocation.addEventListener("change", loadReports);
 filterSalePayment.addEventListener("change", loadReports);
 filterSaleStart.addEventListener("change", loadReports);
 filterSaleEnd.addEventListener("change", loadReports);
-
-
 /* Dashboard */
 const statProducts = document.getElementById("statProducts");
 const statSales = document.getElementById("statSales");
@@ -199,6 +265,40 @@ let STOCK = [];
 let selectedEntryProduct = null;
 let selectedSaleProduct = null;
 let selectedCountProduct = null;
+
+/* ==============================
+   🔎 BUSCA DINÂMICA - VENDAS
+============================== */
+
+if (saleSearch) {
+  saleSearch.addEventListener("input", () => {
+    const term = toUpperText(saleSearch.value);
+
+    saleSuggestions.innerHTML = "";
+    selectedSaleProduct = null;
+
+    if (!term) return;
+
+    const results = PRODUCTS
+      .filter(p => p.active !== false)
+      .filter(p => p.name.includes(term))
+      .slice(0, 5);
+
+    results.forEach(product => {
+      const div = document.createElement("div");
+      div.classList.add("suggestion-item");
+      div.innerText = `${product.name} (${formatMoney(product.price)})`;
+
+      div.addEventListener("click", () => {
+        selectedSaleProduct = product;
+        saleSearch.value = product.name;
+        saleSuggestions.innerHTML = "";
+      });
+
+      saleSuggestions.appendChild(div);
+    });
+  });
+}
 
 /* ==============================
    FUNÇÕES AUXILIARES
@@ -425,7 +525,6 @@ function renderStockList() {
 productSearch.addEventListener("input", renderProductList);
 stockFilterName.addEventListener("input", renderStockList);
 stockFilterLocation.addEventListener("change", renderStockList);
-
 /* ==============================
    CADASTRO DE PRODUTO
 ============================== */
@@ -435,17 +534,19 @@ btnAddProduct.addEventListener("click", async () => {
   const name = toUpperText(productName.value);
   const price = parseFloat(productPrice.value);
 
-  const loja = parseInt(productStockLoja.value);
-  const balcao = parseInt(productStockBalcao.value);
-  const online = parseInt(productStockOnline.value);
+  // 🔹 Se campo estiver vazio, vira 0 automaticamente
+  const loja = productStockLoja.value === "" ? 0 : parseInt(productStockLoja.value);
+  const balcao = productStockBalcao.value === "" ? 0 : parseInt(productStockBalcao.value);
+  const online = productStockOnline.value === "" ? 0 : parseInt(productStockOnline.value);
 
   if (!name) return showMsg(productMsg, "Nome obrigatório.", "#f87171");
   if (!price || isNaN(price) || price <= 0)
     return showMsg(productMsg, "Preço inválido.", "#f87171");
 
-  if (isNaN(loja) || loja < 0) return showMsg(productMsg, "Estoque LOJA inválido.", "#f87171");
-  if (isNaN(balcao) || balcao < 0) return showMsg(productMsg, "Estoque BALCÃO inválido.", "#f87171");
-  if (isNaN(online) || online < 0) return showMsg(productMsg, "Estoque ONLINE inválido.", "#f87171");
+  // 🔹 Agora só valida negativo
+  if (loja < 0) return showMsg(productMsg, "Estoque LOJA inválido.", "#f87171");
+  if (balcao < 0) return showMsg(productMsg, "Estoque BALCÃO inválido.", "#f87171");
+  if (online < 0) return showMsg(productMsg, "Estoque ONLINE inválido.", "#f87171");
 
   const seq = PRODUCTS.length + 1;
   const code = gerarCodigo(name, seq);
@@ -546,6 +647,45 @@ async function hideProduct(productId) {
   await loadAll();
 }
 
+
+// ==============================
+// 🔥 CONTROLE DE ESTOQUE
+// ==============================
+
+async function getStock(productId, location) {
+  const stockRef = doc(db, "stock", `${productId}_${location}`);
+  const snap = await getDoc(stockRef);
+
+  if (!snap.exists()) return 0;
+
+  return snap.data().quantity || 0;
+}
+
+async function updateStock(productId, productName, location, delta) {
+  const stockRef = doc(db, "stock", `${productId}_${location}`);
+  const snap = await getDoc(stockRef);
+
+  if (!snap.exists()) {
+    // cria se não existir
+    await setDoc(stockRef, {
+      productId,
+      productName,
+      location,
+      quantity: delta,
+      updatedAt: new Date().toISOString(),
+    });
+  } else {
+    const currentQty = snap.data().quantity || 0;
+    const newQty = currentQty + delta;
+
+    await updateDoc(stockRef, {
+      quantity: newQty,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+}
+
+
 /* ==============================
    DASHBOARD
 ============================== */
@@ -569,7 +709,6 @@ async function loadDashboard() {
   if (statSales) statSales.innerText = salesSnap.size;
   if (statSalesTotal) statSalesTotal.innerText = formatMoney(totalVendido);
 }
-
 /* ==============================
    CONTAGEM - Carregar tabela por local
 ============================== */
@@ -586,7 +725,8 @@ async function loadCountTable() {
 
     const stockItems = snap.docs
       .map((d) => ({ id: d.id, ...d.data() }))
-      .filter((s) => s.location === location)
+      // 🔹 Agora só mostra produtos do local selecionado E com quantidade > 0
+      .filter((s) => s.location === location && s.quantity > 0)
       .sort((a, b) => a.productName.localeCompare(b.productName));
 
     countTableBody.innerHTML = "";
@@ -618,6 +758,37 @@ async function loadCountTable() {
         </td>
         <td class="count-diff">-</td>
       `;
+
+      const input = tr.querySelector(".new-count-input");
+      const diffCell = tr.querySelector(".count-diff");
+
+      input.addEventListener("input", () => {
+        const current = parseInt(input.dataset.currentQty);
+        const value = input.value;
+
+        if (value === "") {
+          diffCell.innerText = "-";
+          diffCell.style.color = "";
+          return;
+        }
+
+        const newQty = parseInt(value);
+
+        if (isNaN(newQty)) return;
+
+        const diff = newQty - current;
+
+        if (diff === 0) {
+          diffCell.innerText = "0";
+          diffCell.style.color = "#94a3b8";
+        } else if (diff > 0) {
+          diffCell.innerText = `+${diff}`;
+          diffCell.style.color = "#22c55e";
+        } else {
+          diffCell.innerText = diff;
+          diffCell.style.color = "#ef4444";
+        }
+      });
 
       countTableBody.appendChild(tr);
     });
@@ -862,10 +1033,36 @@ async function deleteSale(sale) {
     await loadStock();
     await loadDashboard();
     //await loadReports();
-
     alert("Venda excluída com sucesso e estoque restaurado!");
   } catch (error) {
     console.error("Erro ao excluir venda:", error);
     alert("Erro ao excluir venda.");
   }
 }
+
+// ==============================
+// 🔥 FUNÇÃO TEMPORÁRIA - LIMPAR BANCO
+// ==============================
+
+async function deleteCollection(name) {
+  const snapshot = await getDocs(collection(db, name));
+
+  const deletions = snapshot.docs.map((docSnap) =>
+    deleteDoc(doc(db, name, docSnap.id))
+  );
+
+  await Promise.all(deletions);
+  console.log(`Coleção ${name} apagada`);
+}
+
+window.resetDatabase = async function () {
+  const confirmReset = confirm("Tem certeza que deseja apagar os dados?");
+  if (!confirmReset) return;
+
+  await deleteCollection("sales");
+  await deleteCollection("stock");
+  // await deleteCollection("products"); // descomente se quiser apagar produtos também
+
+  console.log("Banco limpo com sucesso!");
+  alert("Banco limpo com sucesso!");
+};
