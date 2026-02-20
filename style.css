@@ -7,17 +7,17 @@
   --bg-main: #f8fafc;
   --bg-gradient: linear-gradient(180deg, #ffffff, #f1f5f9);
   --bg-card: #ffffff;
-  --bg-input: #f1f5f9;
+  --bg-input: #f1eee1;
 
   /* 🌸 Azul pétala principal */
-  --accent: #1e90c2;
-  --accent-hover: #1677a6;
+  --accent: #c28e1e;
+  --accent-hover: #d9e0e4;
 
   /* Degradê oficial da marca */
   --brand-gradient: linear-gradient(90deg, #ff7a18, #ff3c7a);
 
   /* Estados */
-  --success: #22c55e;
+  --success: #92eb56;
   --danger: #ef4444;
   --warning: #f59e0b;
 
@@ -182,8 +182,8 @@ select {
   padding: 10px;
   border-radius: 10px;
   border: 1px solid #334155; /* borda visível */
-  background: #111827; /* fundo um pouco mais claro que o bg geral */
-  color: #f8fafc; /* branco mais suave */
+  background: #f0f1f3; /* fundo um pouco mais claro que o bg geral */
+  color: #0f1113; /* branco mais suave */
   outline: none;
   transition: 0.2s;
 }
@@ -193,7 +193,7 @@ input:focus,
 select:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
-  background: #0f172a;
+  background: #dadada;
 }
 
 input:focus,
@@ -220,7 +220,7 @@ input::placeholder {
 
 .btn-success {
   background: var(--success);
-  color: #0f172a;
+  color: #0f0f0f;
 }
 
 .btn-success:hover {
@@ -377,7 +377,7 @@ tr:hover {
 }
 
 .day-total-grid div {
-  background: #1e293b;
+  background: #ded9e2;
   padding: 10px;
   border-radius: 10px;
 }

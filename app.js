@@ -419,11 +419,21 @@ onAuthStateChanged(auth, async (user) => {
     userEmail.innerText = user.email;
     btnLogout.classList.remove("hidden");
 
-    entryDateTime.value = nowDateTimeLocal();
-    saleDateTime.value = nowDateTimeLocal();
-    countDateTime.value = nowDateTimeLocal();
+    // 🔒 Proteção contra elementos removidos/comentados
+    if (typeof entryDateTime !== "undefined" && entryDateTime) {
+      entryDateTime.value = nowDateTimeLocal();
+    }
+
+    if (typeof saleDateTime !== "undefined" && saleDateTime) {
+      saleDateTime.value = nowDateTimeLocal();
+    }
+
+    if (typeof countDateTime !== "undefined" && countDateTime) {
+      countDateTime.value = nowDateTimeLocal();
+    }
 
     await loadAll();
+
   } else {
     screenLogin.classList.remove("hidden");
     screenSystem.classList.add("hidden");
@@ -455,6 +465,23 @@ async function loadStock() {
   const snap = await getDocs(collection(db, "stock"));
   STOCK = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   renderStockList();
+}
+
+
+/* ==============================
+   FILTRO ESTOQUE
+============================== */
+
+if (stockFilterName) {
+  stockFilterName.addEventListener("input", () => {
+    renderStockList();
+  });
+}
+
+if (stockFilterLocation) {
+  stockFilterLocation.addEventListener("change", () => {
+    renderStockList();
+  });
 }
 
 function renderProductList() {
@@ -499,33 +526,69 @@ function renderProductList() {
 function renderStockList() {
   stockList.innerHTML = "";
 
-  const filterName = toUpperText(stockFilterName.value);
-  const filterLocation = stockFilterLocation.value;
+  const filterName = (stockFilterName?.value || "").toUpperCase().trim();
+  const filterLocation = stockFilterLocation?.value || "";
 
-  STOCK.filter((s) => {
-    if (filterName && !s.productName.includes(filterName)) return false;
-    if (filterLocation && s.location !== filterLocation) return false;
-    return true;
-  }).forEach((s) => {
-    const tr = document.createElement("tr");
+  STOCK
+    .filter((s) => {
+      const productName = (s.productName || "").toUpperCase();
 
-    const qtyClass = s.quantity === 0 ? "stock-zero" : "stock-ok";
+      const matchName =
+        !filterName || productName.includes(filterName);
 
-    tr.innerHTML = `
-      <td>${s.productName}</td>
-      <td>${s.location}</td>
-      <td class="${qtyClass}">${s.quantity}</td>
-      <td>${s.updatedAt ? new Date(s.updatedAt).toLocaleString("pt-BR") : "-"}</td>
-    `;
+      const matchLocation =
+        !filterLocation || s.location === filterLocation;
 
-    stockList.appendChild(tr);
-  });
-}
+      return matchName && matchLocation;
+    })
+    .sort((a, b) => a.productName.localeCompare(b.productName))
+    .forEach((s) => {
+      const tr = document.createElement("tr");
 
-productSearch.addEventListener("input", renderProductList);
-stockFilterName.addEventListener("input", renderStockList);
-stockFilterLocation.addEventListener("change", renderStockList);
-/* ==============================
+      const qtyClass =
+        s.quantity === 0 ? "stock-zero" : "stock-ok";
+
+      tr.innerHTML = `
+        <td data-label="Produto">${s.productName}</td>
+        <td data-label="Local">${s.location}</td>
+        <td data-label="Atual" class="${qtyClass}">
+          ${s.quantity}
+        </td>
+        <td data-label="Ajuste">
+          <input 
+            type="number"
+            class="stock-adjust-input"
+            placeholder="+ ou -"
+          >
+        </td>
+        <td data-label="Ação">
+          <button class="action-btn action-edit-stock">
+            SALVAR
+          </button>
+        </td>
+      `;
+
+      stockList.appendChild(tr);
+
+      const input = tr.querySelector(".stock-adjust-input");
+      const btn = tr.querySelector(".action-edit-stock");
+
+      btn.addEventListener("click", async () => {
+        const value = parseInt(input.value);
+
+        if (!value || isNaN(value)) return;
+
+        await updateStock(
+          s.productId,
+          s.productName,
+          s.location,
+          value
+        );
+
+        await loadStock();
+      });
+    });
+}/* ==============================
    CADASTRO DE PRODUTO
 ============================== */
 btnAddProduct.addEventListener("click", async () => {
