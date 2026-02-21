@@ -91,8 +91,17 @@ if (btnAddSale) {
     const dateTime = saleDateTime.value;
     const note = saleNote.value;
 
+    const discount = parseFloat(
+      document.getElementById("saleDiscount")?.value || 0
+    );
+
     if (!qty || qty <= 0) {
       showMsg(saleMsg, "Quantidade inválida.", "#f87171");
+      return;
+    }
+
+    if (discount < 0) {
+      showMsg(saleMsg, "Desconto inválido.", "#f87171");
       return;
     }
 
@@ -107,7 +116,18 @@ if (btnAddSale) {
       return;
     }
 
-    const total = qty * selectedSaleProduct.price;
+    const subtotal = qty * selectedSaleProduct.price;
+
+    if (discount > subtotal) {
+      showMsg(
+        saleMsg,
+        "Desconto não pode ser maior que o total da venda.",
+        "#f87171"
+      );
+      return;
+    }
+
+    const total = subtotal - discount;
 
     await addDoc(collection(db, "sales"), {
       productId: selectedSaleProduct.id,
@@ -115,6 +135,8 @@ if (btnAddSale) {
       location,
       quantity: qty,
       unitPrice: selectedSaleProduct.price,
+      subtotal,
+      discount,
       total,
       paymentMethod: payment,
       note,
@@ -131,6 +153,7 @@ if (btnAddSale) {
     saleSearch.value = "";
     saleQty.value = "";
     saleNote.value = "";
+    document.getElementById("saleDiscount").value = "";
     selectedSaleProduct = null;
 
     showMsg(saleMsg, "Venda registrada com sucesso!", "#4ade80");
