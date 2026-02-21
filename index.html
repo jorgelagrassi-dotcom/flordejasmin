@@ -274,21 +274,30 @@
         </div>
 
         <!-- CONTAGEM -->
-<div id="tabCount" class="tab hidden">
-  <div class="card">
-    <h2>📦 Contagem por Local</h2>
-
-    <div class="form-grid">
-
-      <div class="form-group">
-        <label>Local</label>
-        <select id="countLocation">
-          <option value="">Selecione...</option>
-          <option value="LOJA">LOJA</option>
-          <option value="BALCAO">BALCÃO</option>
-          <option value="ONLINE">ONLINE</option>
-        </select>
-      </div>
+        <div id="tabCount" class="tab hidden">
+          <div class="card">
+            <h2>📦 Contagem por Produto e Local</h2>
+        
+            <div class="form-grid">
+        
+              <div class="form-group">
+                <label>Filtrar Produto</label>
+                <input 
+                  type="text" 
+                  id="countFilterProduct" 
+                  placeholder="Digite parte do nome do produto"
+                />
+              </div>
+        
+              <div class="form-group">
+                <label>Local</label>
+                <select id="countLocation">
+                  <option value="">TODOS</option>
+                  <option value="LOJA">LOJA</option>
+                  <option value="BALCAO">BALCÃO</option>
+                  <option value="ONLINE">ONLINE</option>
+                </select>
+              </div>
 
       <div class="form-group">
         <label>Data e Hora da Contagem</label>

@@ -140,22 +140,27 @@ if (btnAddSale) {
     await loadReports();
   });
 }
-
 /* ==============================
    CONTAGEM
 ============================== */
+const countFilterProduct = document.getElementById("countFilterProduct");
 const countLocation = document.getElementById("countLocation");
 const countDateTime = document.getElementById("countDateTime");
 const countTableBody = document.getElementById("countTableBody");
 const btnSaveCount = document.getElementById("btnSaveCount");
 const countMsg = document.getElementById("countMsg");
 
-// Quando mudar o local, carregar os produtos daquele local
+// Quando mudar o local, recarrega tabela
 if (countLocation) {
   countLocation.addEventListener("change", loadCountTable);
 }
 
-// Botão Registrar Contagem do Local
+// Quando digitar no filtro de produto, recarrega tabela
+if (countFilterProduct) {
+  countFilterProduct.addEventListener("input", loadCountTable);
+}
+
+// Botão Registrar Contagem do Local (mantido caso você queira usar ainda)
 if (btnSaveCount) {
   btnSaveCount.addEventListener("click", saveCount);
 }
@@ -771,26 +776,39 @@ async function loadDashboard() {
   if (statProducts) statProducts.innerText = activeProducts;
   if (statSales) statSales.innerText = salesSnap.size;
   if (statSalesTotal) statSalesTotal.innerText = formatMoney(totalVendido);
-}
-/* ==============================
-   CONTAGEM - Carregar tabela por local
+}/* ==============================
+   CONTAGEM - Carregar tabela com filtro por produto e local
 ============================== */
 async function loadCountTable() {
-  const location = countLocation?.value;
 
-  if (!location || !countTableBody) {
-    if (countTableBody) countTableBody.innerHTML = "";
-    return;
-  }
+  const location = countLocation?.value || "";
+  const productFilter = (countFilterProduct?.value || "").toUpperCase().trim();
+
+  if (!countTableBody) return;
 
   try {
     const snap = await getDocs(collection(db, "stock"));
 
-    const stockItems = snap.docs
-      .map((d) => ({ id: d.id, ...d.data() }))
-      // 🔹 Agora só mostra produtos do local selecionado E com quantidade > 0
-      .filter((s) => s.location === location && s.quantity > 0)
-      .sort((a, b) => a.productName.localeCompare(b.productName));
+    let stockItems = snap.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+    }));
+
+    // 🔎 FILTRO POR PRODUTO (busca parcial)
+    if (productFilter) {
+      stockItems = stockItems.filter((s) =>
+        (s.productName || "").toUpperCase().includes(productFilter)
+      );
+    }
+
+    // 🔎 FILTRO POR LOCAL (opcional)
+    if (location) {
+      stockItems = stockItems.filter((s) => s.location === location);
+    }
+
+    stockItems.sort((a, b) =>
+      a.productName.localeCompare(b.productName)
+    );
 
     countTableBody.innerHTML = "";
 
@@ -799,6 +817,7 @@ async function loadCountTable() {
 
       tr.innerHTML = `
         <td>${item.productName}</td>
+
         <td>
           ${item.quantity}
           <br>
@@ -810,47 +829,65 @@ async function loadCountTable() {
             }
           </small>
         </td>
+
         <td>
           <input 
             type="number"
             min="0"
+            value="${item.quantity}"
             class="new-count-input"
-            data-product-id="${item.productId}"
-            data-current-qty="${item.quantity}"
           >
         </td>
-        <td class="count-diff">-</td>
+
+        <td>
+          <button class="action-btn action-edit-stock">
+            SALVAR
+          </button>
+        </td>
       `;
 
       const input = tr.querySelector(".new-count-input");
-      const diffCell = tr.querySelector(".count-diff");
+      const btnSave = tr.querySelector(".action-edit-stock");
 
-      input.addEventListener("input", () => {
-        const current = parseInt(input.dataset.currentQty);
-        const value = input.value;
+      btnSave.addEventListener("click", async () => {
 
-        if (value === "") {
-          diffCell.innerText = "-";
-          diffCell.style.color = "";
-          return;
-        }
-
-        const newQty = parseInt(value);
-
+        const newQty = parseInt(input.value);
         if (isNaN(newQty)) return;
 
-        const diff = newQty - current;
+        const delta = newQty - item.quantity;
+        if (delta === 0) return;
 
-        if (diff === 0) {
-          diffCell.innerText = "0";
-          diffCell.style.color = "#94a3b8";
-        } else if (diff > 0) {
-          diffCell.innerText = `+${diff}`;
-          diffCell.style.color = "#22c55e";
-        } else {
-          diffCell.innerText = diff;
-          diffCell.style.color = "#ef4444";
+        const product = PRODUCTS.find((p) => p.id === item.productId);
+        if (!product) return;
+
+        // 🔻 Se diminuiu → gera venda automática HOTEL
+        if (delta < 0) {
+          const qtyVendida = Math.abs(delta);
+          const total = qtyVendida * product.price;
+
+          await addDoc(collection(db, "sales"), {
+            productId: product.id,
+            productName: product.name,
+            location: item.location,
+            quantity: qtyVendida,
+            unitPrice: product.price,
+            total,
+            paymentMethod: "HOTEL",
+            note: "VENDA AUTOMÁTICA - CONTAGEM",
+            createdAt: todayISOFromLocal(countDateTime.value),
+          });
         }
+
+        await updateStock(
+          product.id,
+          product.name,
+          item.location,
+          delta
+        );
+
+        await loadStock();
+        await loadDashboard();
+        await loadCountTable();
       });
 
       countTableBody.appendChild(tr);
