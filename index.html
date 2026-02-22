@@ -44,16 +44,74 @@
         </div>
       </section>
 
-      <!-- SISTEMA -->
-      <section id="screenSystem" class="screen hidden">
-        <nav class="menu">
-          <button class="menu-btn active" data-tab="tabDashboard">Dashboard</button>
-          <button class="menu-btn" data-tab="tabProducts">Produtos</button>
-          <button class="menu-btn" data-tab="tabStock">Estoque</button>
-          <button class="menu-btn" data-tab="tabSales">Vendas</button>
-          <button class="menu-btn" data-tab="tabCount">Contagem</button>
-          <button class="menu-btn" data-tab="tabReports">Relatórios</button>
-        </nav>
+<!-- SISTEMA -->
+<section id="screenSystem" class="screen hidden">
+  <nav class="menu">
+    <button class="menu-btn active" data-tab="tabDashboard">Dashboard</button>
+    <button class="menu-btn" data-tab="tabProducts">Produtos</button>
+    <button class="menu-btn" data-tab="tabStock">Estoque</button>
+    <button class="menu-btn" data-tab="tabSales">Vendas</button>
+    <button class="menu-btn" data-tab="tabCount">Contagem</button>
+    <button class="menu-btn" data-tab="tabReports">Relatórios</button>
+    <button class="menu-btn" data-tab="tabPrint">Impressão</button>
+  </nav>
+
+  <!-- CONTAGEM -->
+  <div id="tabCount" class="tab hidden">
+    <div class="card">
+      <h2>📦 Contagem por Produto e Local</h2>
+
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label>Filtrar Produto</label>
+          <input 
+            type="text" 
+            id="countFilterProduct" 
+            placeholder="Digite parte do nome do produto"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Local</label>
+          <select id="countLocation">
+            <option value="">TODOS</option>
+            <option value="LOJA">LOJA</option>
+            <option value="BALCAO">BALCÃO</option>
+            <option value="ONLINE">ONLINE</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Data e Hora da Contagem</label>
+          <input type="datetime-local" id="countDateTime" />
+        </div>
+
+      </div>
+
+      <div class="table-wrapper" style="margin-top:20px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Estoque Atual<br><small>Data/Hora</small></th>
+              <th>Nova Contagem</th>
+              <th>Diferença</th>
+            </tr>
+          </thead>
+          <tbody id="countTableBody">
+          </tbody>
+        </table>
+      </div>
+
+      <button id="btnSaveCount" class="btn btn-success" style="margin-top:20px;">
+        Registrar Contagem do Local
+      </button>
+
+      <p id="countMsg" class="msg"></p>
+
+    </div>
+  </div>
 
         <!-- DASHBOARD -->
         <div id="tabDashboard" class="tab">
@@ -316,76 +374,15 @@
             </div>
             
             <p id="saleMsg" class="msg"></p>
-
-        <!-- CONTAGEM -->
-        <div id="tabCount" class="tab hidden">
-          <div class="card">
-            <h2>📦 Contagem por Produto e Local</h2>
-        
-            <div class="form-grid">
-        
-              <div class="form-group">
-                <label>Filtrar Produto</label>
-                <input 
-                  type="text" 
-                  id="countFilterProduct" 
-                  placeholder="Digite parte do nome do produto"
-                />
-              </div>
-        
-              <div class="form-group">
-                <label>Local</label>
-                <select id="countLocation">
-                  <option value="">TODOS</option>
-                  <option value="LOJA">LOJA</option>
-                  <option value="BALCAO">BALCÃO</option>
-                  <option value="ONLINE">ONLINE</option>
-                </select>
-              </div>
-
-      <div class="form-group">
-        <label>Data e Hora da Contagem</label>
-        <input type="datetime-local" id="countDateTime" />
-      </div>
-
-    </div>
-
-    <div class="table-wrapper" style="margin-top:20px;">
-      <table>
-        <thead>
-          <tr>
-            <th>Produto</th>
-            <th>Estoque Atual<br><small>Data/Hora</small></th>
-            <th>Nova Contagem</th>
-            <th>Diferença</th>
-          </tr>
-        </thead>
-        <tbody id="countTableBody">
-          <!-- Será preenchido via JavaScript -->
-        </tbody>
-      </table>
-    </div>
-
-    <button id="btnSaveCount" class="btn btn-success" style="margin-top:20px;">
-      Registrar Contagem do Local
-    </button>
-
-    <p id="countMsg" class="msg"></p>
-
-  </div>
-</div>
-
-
-            
-
-            <p id="countMsg" class="msg"></p>
           </div>
         </div>
-
-        <!-- RELATÓRIOS -->
+      </div>
+ <!-- RELATÓRIOS -->
 <div id="tabReports" class="tab hidden">
+
   <div class="card">
     <h2>📑 Relatórios</h2>
+
     <div class="form-grid" style="margin-bottom:20px;">
 
       <div class="form-group">
@@ -441,54 +438,67 @@
       </table>
     </div>
   </div>
+
 </div>
 
-<!-- 🔥 NOVA ABA: RELATÓRIO GERENCIAL -->
-<div id="tabManagerReport" class="tab hidden">
+<!-- IMPRESSÃO -->
+<div id="tabPrint" class="tab hidden">
   <div class="card">
-    <h2>📊 Relatório Gerencial</h2>
+    <h2>🖨 Impressão de Relatório</h2>
 
     <div class="form-grid" style="margin-bottom:20px;">
 
       <div class="form-group">
         <label>Data Inicial</label>
-        <input type="date" id="managerStartDate">
+        <input type="datetime-local" id="printStartDate">
       </div>
 
       <div class="form-group">
         <label>Data Final</label>
-        <input type="date" id="managerEndDate">
+        <input type="datetime-local" id="printEndDate">
       </div>
 
-      <div class="form-group" style="display:flex; align-items:flex-end;">
-        <button id="btnGenerateManagerReport" class="btn btn-primary">
-          🔎 Gerar Relatório
-        </button>
-      </div>
-
-      <div class="form-group" style="display:flex; align-items:flex-end;">
-        <button id="btnPrintManagerReport" class="btn btn-success">
-          🖨️ Imprimir
-        </button>
+      <div class="form-group">
+        <label>Local</label>
+        <select id="printLocation">
+          <option value="">TODOS</option>
+          <option value="LOJA">LOJA</option>
+          <option value="BALCAO">BALCÃO</option>
+          <option value="ONLINE">ONLINE</option>
+        </select>
       </div>
 
     </div>
+
+    <button id="btnGeneratePrint" class="btn btn-secondary">
+      Gerar Relatório
+    </button>
+
+    <button id="btnPrintNow" class="btn btn-success" style="margin-left:10px;">
+      Imprimir
+    </button>
+
   </div>
 
   <div class="card">
-    <div id="managerReportContent">
-      <!-- O relatório será renderizado aqui -->
+    <h2>📄 Pré-visualização</h2>
+    <div id="printPreview">
+      <!-- Relatório será gerado aqui -->
     </div>
   </div>
 </div>
-      </section>
 
-      <footer class="footer">
-        <p>Sistema - Jorge La Grassi</p>
-      </footer>
-    </div>
+</section>
 
-    <script type="module" src="firebase.js"></script>
-    <script type="module" src="app.js"></script>
-  </body>
+<footer class="footer">
+  <p>Sistema - Jorge La Grassi</p>
+</footer>
+
+<div id="printArea" class="hidden"></div>
+
+</div>
+
+<script type="module" src="firebase.js"></script>
+<script type="module" src="app.js"></script>
+</body>
 </html>

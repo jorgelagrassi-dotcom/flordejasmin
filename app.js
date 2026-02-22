@@ -376,10 +376,7 @@ if (!product) continue;
 
 
 
-/* ==============================
-   RELATÓRIOS
-============================== */
-
+/* Relatórios */
 const reportSearch = document.getElementById("reportSearch");
 const reportLocation = document.getElementById("reportLocation");
 const btnLoadReports = document.getElementById("btnLoadReports");
@@ -391,25 +388,130 @@ const filterSalePayment = document.getElementById("filterSalePayment");
 const filterSaleStart = document.getElementById("filterSaleStart");
 const filterSaleEnd = document.getElementById("filterSaleEnd");
 
-if (filterSaleLocation) filterSaleLocation.addEventListener("change", loadReports);
-if (filterSalePayment) filterSalePayment.addEventListener("change", loadReports);
-if (filterSaleStart) filterSaleStart.addEventListener("change", loadReports);
-if (filterSaleEnd) filterSaleEnd.addEventListener("change", loadReports);
+filterSaleLocation.addEventListener("change", loadReports);
+filterSalePayment.addEventListener("change", loadReports);
+filterSaleStart.addEventListener("change", loadReports);
+filterSaleEnd.addEventListener("change", loadReports);
 
-/* ==============================
-   RELATÓRIO GERENCIAL
-============================== */
+/* Impressão */
+const btnPrintNow = document.getElementById("btnPrintNow");
+const btnGeneratePrint = document.getElementById("btnGeneratePrint");
+const printPreview = document.getElementById("printPreview");
+const printStartDate = document.getElementById("printStartDate");
+const printEndDate = document.getElementById("printEndDate");
+const printLocation = document.getElementById("printLocation");
 
-const managerStartDate = document.getElementById("managerStartDate");
-const managerEndDate = document.getElementById("managerEndDate");
-const btnGenerateManagerReport = document.getElementById("btnGenerateManagerReport");
-const btnPrintManagerReport = document.getElementById("btnPrintManagerReport");
-const managerReportContent = document.getElementById("managerReportContent");
+if (btnGeneratePrint && printPreview) {
+  btnGeneratePrint.addEventListener("click", async () => {
 
-/* ==============================
-   DASHBOARD
-============================== */
+    const snap = await getDocs(collection(db, "sales"));
+    let sales = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
+    const startFilter = printStartDate?.value;
+    const endFilter = printEndDate?.value;
+    const locationFilter = printLocation?.value;
+
+    sales = sales.filter((s) => {
+      const saleDate = new Date(s.createdAt);
+
+      if (startFilter && saleDate < new Date(startFilter)) return false;
+      if (endFilter && saleDate > new Date(endFilter)) return false;
+      if (locationFilter && s.location !== locationFilter) return false;
+
+      return true;
+    });
+
+    sales.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+    let totalGeral = 0;
+
+    let html = `<div class="print-header">RELATÓRIO DE VENDAS — ${startFilter || "—"} até ${endFilter || "—"} — Local: ${locationFilter || "TODOS"}</div>`;
+  
+  html += `
+    <table border="1" cellspacing="0" cellpadding="4" width="100%">
+      <thead>
+        <tr>
+          <th>Produto</th>
+          <th>Local</th>
+          <th>Qtd</th>
+          <th>Total</th>
+          <th>Pagamento</th>
+          <th>Data</th>
+          <th>Estoque</th>
+          <th>Atenção</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+    sales.forEach((s) => {
+      totalGeral += s.total || 0;
+
+      const stockItems = STOCK.filter(st => st.productId === s.productId);
+      const estoqueTotal = stockItems.reduce((acc, st) => acc + (st.quantity || 0), 0);
+
+      let alerta = "";
+      if (estoqueTotal === 0) alerta = "ITEM ZERADO";
+      else if (estoqueTotal <= 3) alerta = `RESTAM ${estoqueTotal}`;
+
+      html += `
+        <tr>
+          <td>${s.productName}</td>
+          <td>${s.location}</td>
+          <td>${s.quantity}</td>
+          <td>${formatMoney(s.total || 0)}</td>
+          <td>${s.paymentMethod}</td>
+          <td>${new Date(s.createdAt).toLocaleString("pt-BR")}</td>
+          <td>${estoqueTotal}</td>
+          <td>${alerta}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+        </tbody>
+      </table>
+      <hr>
+      <h3>Total Geral: ${formatMoney(totalGeral)}</h3>
+    `;
+
+    printPreview.innerHTML = html;
+  });
+}
+
+if (btnPrintNow) {
+  btnPrintNow.addEventListener("click", () => {
+
+    const conteudo = printPreview.innerHTML;
+
+    const janela = window.open("", "", "width=1200,height=800");
+
+    janela.document.write(`
+      <html>
+        <head>
+          <title>Relatório</title>
+          <style>
+            @page { size: A4 landscape; margin: 10mm; }
+            body { font-family: Arial, sans-serif; margin: 0; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #000; padding: 4px; font-size: 11px; }
+            thead { display: table-header-group; }
+          </style>
+        </head>
+        <body>
+          ${conteudo}
+        </body>
+      </html>
+    `);
+
+    janela.document.close();
+    janela.focus();
+    janela.print();
+    janela.close();
+  });
+}
+
+/* Dashboard */
 const statProducts = document.getElementById("statProducts");
 const statSales = document.getElementById("statSales");
 const statSalesTotal = document.getElementById("statSalesTotal");
@@ -658,14 +760,7 @@ async function loadAll() {
   await loadProducts();
   await loadStock();
   await loadDashboard();
-  await loadReports(); // ✅ Relatórios padrão
-
-  // 🔥 Define datas padrão do Relatório Gerencial (hoje)
-  if (managerStartDate && managerEndDate) {
-    const hoje = new Date().toISOString().split("T")[0];
-    managerStartDate.value = hoje;
-    managerEndDate.value = hoje;
-  }
+  await loadReports(); // ✅ Relatórios carregam junto
 }
 
 
@@ -1124,38 +1219,31 @@ async function loadReports() {
   const startFilter = filterSaleStart?.value;
   const endFilter = filterSaleEnd?.value;
 
-  const todayStr = new Date().toLocaleDateString("pt-BR");
+  const today = new Date().toLocaleDateString("pt-BR");
 
   sales = sales.filter((s) => {
-    if (!s.createdAt) return false;
+    let ok = true;
 
     const saleDate = new Date(s.createdAt);
-    const saleDayStr = saleDate.toLocaleDateString("pt-BR");
+    const saleDay = saleDate.toLocaleDateString("pt-BR");
 
     // 🔥 Se NÃO houver filtro de data → mostra apenas hoje
     if (!startFilter && !endFilter) {
-      if (saleDayStr !== todayStr) return false;
+      if (saleDay !== today) ok = false;
     }
 
     if (locationFilter && locationFilter !== "TODOS") {
-      if (s.location !== locationFilter) return false;
+      if (s.location !== locationFilter) ok = false;
     }
 
     if (paymentFilter && paymentFilter !== "TODOS") {
-      if (s.paymentMethod !== paymentFilter) return false;
+      if (s.paymentMethod !== paymentFilter) ok = false;
     }
 
-    if (startFilter) {
-      const startDate = new Date(startFilter);
-      if (saleDate < startDate) return false;
-    }
+    if (startFilter && saleDate < new Date(startFilter)) ok = false;
+    if (endFilter && saleDate > new Date(endFilter)) ok = false;
 
-    if (endFilter) {
-      const endDate = new Date(endFilter);
-      if (saleDate > endDate) return false;
-    }
-
-    return true;
+    return ok;
   });
 
   // 🔥 Mais recente primeiro

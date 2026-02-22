@@ -455,6 +455,7 @@ tr:hover {
   margin-top: 20px;
   font-size: 13px;
 }
+
 /* ==============================
    LOGO TOPO
 ============================== */
@@ -475,3 +476,63 @@ tr:hover {
   font-size: 18px;
   font-weight: 600;
 }
+/* ==============================
+   IMPRESSÃO DEFINITIVA
+============================== */
+@media print {
+
+  @page {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #fff;
+  }
+
+  /* Esconde apenas o sistema */
+  #screenSystem,
+  .topbar,
+  .menu,
+  .footer {
+    display: none !important;
+  }
+
+  /* Mostra somente área de impressão */
+  #printArea {
+    display: block !important;
+    width: 100%;
+    font-size: 11px;
+  }
+
+  /* FORÇA tabela real (anula mobile) */
+  table {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tbody {
+    display: table-row-group !important;
+  }
+
+  tr {
+    display: table-row !important;
+  }
+
+  th,
+  td {
+    display: table-cell !important;
+    border: 1px solid #000 !important;
+    padding: 4px !important;
+    font-size: 10px !important;
+  }
+
+}
+
