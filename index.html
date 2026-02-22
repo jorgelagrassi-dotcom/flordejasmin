@@ -281,11 +281,41 @@
               </div>
             </div>
 
-            <button id="btnAddSale" class="btn btn-success">Confirmar Venda</button>
-
+            <button id="btnAddSale" class="btn btn-secondary">
+              ➕ Adicionar Item
+            </button>
+            
+            <!-- 🛒 Carrinho da Venda -->
+            <div class="card" style="margin-top:20px;">
+              <h3>🛒 Itens da Venda</h3>
+            
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Produto</th>
+                      <th>Qtd</th>
+                      <th>Valor Unit.</th>
+                      <th>Subtotal</th>
+                      <th>Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody id="saleCartBody">
+                    <!-- Itens adicionados aparecerão aqui -->
+                  </tbody>
+                </table>
+              </div>
+            
+              <div style="margin-top:15px; font-weight:bold;">
+                Total Parcial: <span id="saleCartTotal">R$ 0,00</span>
+              </div>
+            
+              <button id="btnFinalizeSale" class="btn btn-success" style="margin-top:15px;">
+                ✅ Finalizar Venda
+              </button>
+            </div>
+            
             <p id="saleMsg" class="msg"></p>
-          </div>
-        </div>
 
         <!-- CONTAGEM -->
         <div id="tabCount" class="tab hidden">
@@ -353,67 +383,104 @@
         </div>
 
         <!-- RELATÓRIOS -->
-        <div id="tabReports" class="tab hidden">
-          <div class="card">
-            <h2>📑 Relatórios</h2>
-            <div class="form-grid" style="margin-bottom:20px;">
+<div id="tabReports" class="tab hidden">
+  <div class="card">
+    <h2>📑 Relatórios</h2>
+    <div class="form-grid" style="margin-bottom:20px;">
 
-              <div class="form-group">
-                <label>Filtrar por Local</label>
-                <select id="filterSaleLocation">
-                  <option value="">TODOS</option>
-                  <option value="LOJA">LOJA</option>
-                  <option value="BALCAO">BALCÃO</option>
-                  <option value="ONLINE">ONLINE</option>
-                </select>
-              </div>
-            
-              <div class="form-group">
-                <label>Forma de Pagamento</label>
-                <select id="filterSalePayment">
-                  <option value="">TODOS</option>
-                  <option value="PIX">PIX</option>
-                  <option value="DINHEIRO">DINHEIRO</option>
-                  <option value="MAQUINA_LOJA">MÁQUINA LOJA</option>
-                  <option value="MAQUINA_BALCAO">MÁQUINA BALCÃO</option>
-                </select>
-              </div>
-            
-              <div class="form-group">
-                <label>Data Inicial</label>
-                <input type="datetime-local" id="filterSaleStart">
-              </div>
-            
-              <div class="form-group">
-                <label>Data Final</label>
-                <input type="datetime-local" id="filterSaleEnd">
-              </div>
-            
-            </div>
-            
-            
-          </div>
+      <div class="form-group">
+        <label>Filtrar por Local</label>
+        <select id="filterSaleLocation">
+          <option value="">TODOS</option>
+          <option value="LOJA">LOJA</option>
+          <option value="BALCAO">BALCÃO</option>
+          <option value="ONLINE">ONLINE</option>
+        </select>
+      </div>
 
-          <div class="card">
-            <h2>📌 Lista de Vendas</h2>
+      <div class="form-group">
+        <label>Forma de Pagamento</label>
+        <select id="filterSalePayment">
+          <option value="">TODOS</option>
+          <option value="PIX">PIX</option>
+          <option value="DINHEIRO">DINHEIRO</option>
+          <option value="MAQUINA_LOJA">MÁQUINA LOJA</option>
+          <option value="MAQUINA_BALCAO">MÁQUINA BALCÃO</option>
+        </select>
+      </div>
 
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Produto</th>
-                    <th>Local</th>
-                    <th>Qtd</th>
-                    <th>Total</th>
-                    <th>Pagamento</th>
-                    <th>Data</th>
-                  </tr>
-                </thead>
-                <tbody id="reportList"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+      <div class="form-group">
+        <label>Data Inicial</label>
+        <input type="datetime-local" id="filterSaleStart">
+      </div>
+
+      <div class="form-group">
+        <label>Data Final</label>
+        <input type="datetime-local" id="filterSaleEnd">
+      </div>
+
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📌 Lista de Vendas</h2>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Local</th>
+            <th>Qtd</th>
+            <th>Total</th>
+            <th>Pagamento</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody id="reportList"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 🔥 NOVA ABA: RELATÓRIO GERENCIAL -->
+<div id="tabManagerReport" class="tab hidden">
+  <div class="card">
+    <h2>📊 Relatório Gerencial</h2>
+
+    <div class="form-grid" style="margin-bottom:20px;">
+
+      <div class="form-group">
+        <label>Data Inicial</label>
+        <input type="date" id="managerStartDate">
+      </div>
+
+      <div class="form-group">
+        <label>Data Final</label>
+        <input type="date" id="managerEndDate">
+      </div>
+
+      <div class="form-group" style="display:flex; align-items:flex-end;">
+        <button id="btnGenerateManagerReport" class="btn btn-primary">
+          🔎 Gerar Relatório
+        </button>
+      </div>
+
+      <div class="form-group" style="display:flex; align-items:flex-end;">
+        <button id="btnPrintManagerReport" class="btn btn-success">
+          🖨️ Imprimir
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="card">
+    <div id="managerReportContent">
+      <!-- O relatório será renderizado aqui -->
+    </div>
+  </div>
+</div>
       </section>
 
       <footer class="footer">

@@ -61,6 +61,10 @@ const stockFilterName = document.getElementById("stockFilterName");
 const stockFilterLocation = document.getElementById("stockFilterLocation");
 const stockList = document.getElementById("stockList");
 
+/* ==============================
+   💰 VENDA (CARRINHO)
+============================== */
+
 /* Venda */
 const saleSearch = document.getElementById("saleSearch");
 const saleSuggestions = document.getElementById("saleSuggestions");
@@ -70,14 +74,20 @@ const salePayment = document.getElementById("salePayment");
 const saleDateTime = document.getElementById("saleDateTime");
 const saleNote = document.getElementById("saleNote");
 const btnAddSale = document.getElementById("btnAddSale");
+const btnFinalizeSale = document.getElementById("btnFinalizeSale");
+const saleCartBody = document.getElementById("saleCartBody");
+const saleCartTotal = document.getElementById("saleCartTotal");
 const saleMsg = document.getElementById("saleMsg");
 
-/* ==============================
-   💰 REGISTRAR VENDA
-============================== */
+/* 🛒 Carrinho em memória */
+let saleCart = [];
 
+/* ==============================
+   🛒 ADICIONAR ITEM AO CARRINHO
+============================== */
 if (btnAddSale) {
-  btnAddSale.addEventListener("click", async () => {
+  btnAddSale.addEventListener("click", async function () {
+
     saleMsg.innerText = "";
 
     if (!selectedSaleProduct) {
@@ -87,21 +97,9 @@ if (btnAddSale) {
 
     const location = saleLocation.value;
     const qty = parseInt(saleQty.value);
-    const payment = salePayment.value;
-    const dateTime = saleDateTime.value;
-    const note = saleNote.value;
-
-    const discount = parseFloat(
-      document.getElementById("saleDiscount")?.value || 0
-    );
 
     if (!qty || qty <= 0) {
       showMsg(saleMsg, "Quantidade inválida.", "#f87171");
-      return;
-    }
-
-    if (discount < 0) {
-      showMsg(saleMsg, "Desconto inválido.", "#f87171");
       return;
     }
 
@@ -116,39 +114,100 @@ if (btnAddSale) {
       return;
     }
 
-    const subtotal = qty * selectedSaleProduct.price;
+    const existingItem = saleCart.find(
+      item =>
+        item.productId === selectedSaleProduct.id &&
+        item.location === location
+    );
 
-    if (discount > subtotal) {
-      showMsg(
-        saleMsg,
-        "Desconto não pode ser maior que o total da venda.",
-        "#f87171"
-      );
+    if (existingItem) {
+      existingItem.quantity += qty;
+    } else {
+      saleCart.push({
+        productId: selectedSaleProduct.id,
+        productName: selectedSaleProduct.name,
+        quantity: qty,
+        unitPrice: selectedSaleProduct.price,
+        location: location
+      });
+    }
+
+    renderSaleCart();
+
+    saleSearch.value = "";
+    saleQty.value = "";
+    selectedSaleProduct = null;
+
+    showMsg(saleMsg, "Item adicionado ao carrinho!", "#4ade80");
+  });
+}
+
+/* ==============================
+   ✅ FINALIZAR VENDA
+============================== */
+if (btnFinalizeSale) {
+  btnFinalizeSale.addEventListener("click", async function () {
+
+    saleMsg.innerText = "";
+
+    if (saleCart.length === 0) {
+      showMsg(saleMsg, "Adicione pelo menos um item ao carrinho.", "#f87171");
       return;
     }
 
-    const total = subtotal - discount;
+    const payment = salePayment.value;
+    const dateTime = saleDateTime.value;
+    const note = saleNote.value;
+    const discount = parseFloat(
+      document.getElementById("saleDiscount")?.value || 0
+    );
 
-    await addDoc(collection(db, "sales"), {
-      productId: selectedSaleProduct.id,
-      productName: selectedSaleProduct.name,
-      location,
-      quantity: qty,
-      unitPrice: selectedSaleProduct.price,
-      subtotal,
-      discount,
-      total,
-      paymentMethod: payment,
-      note,
-      createdAt: todayISOFromLocal(dateTime),
+    if (discount < 0) {
+      showMsg(saleMsg, "Desconto inválido.", "#f87171");
+      return;
+    }
+
+    const saleGroupId = generateSaleGroupId();
+
+    let subtotalGeral = 0;
+    saleCart.forEach(item => {
+      subtotalGeral += item.quantity * item.unitPrice;
     });
 
-    await updateStock(
-      selectedSaleProduct.id,
-      selectedSaleProduct.name,
-      location,
-      -qty
-    );
+    if (discount > subtotalGeral) {
+      showMsg(saleMsg, "Desconto maior que o total da venda.", "#f87171");
+      return;
+    }
+
+    for (const item of saleCart) {
+
+      const itemSubtotal = item.quantity * item.unitPrice;
+
+      await addDoc(collection(db, "sales"), {
+        saleGroupId,
+        productId: item.productId,
+        productName: item.productName,
+        location: item.location,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        subtotal: itemSubtotal,
+        discount: 0,
+        total: itemSubtotal,
+        paymentMethod: payment,
+        note,
+        createdAt: todayISOFromLocal(dateTime),
+      });
+
+      await updateStock(
+        item.productId,
+        item.productName,
+        item.location,
+        -item.quantity
+      );
+    }
+
+    saleCart = [];
+    renderSaleCart();
 
     saleSearch.value = "";
     saleQty.value = "";
@@ -156,11 +215,64 @@ if (btnAddSale) {
     document.getElementById("saleDiscount").value = "";
     selectedSaleProduct = null;
 
-    showMsg(saleMsg, "Venda registrada com sucesso!", "#4ade80");
+    showMsg(saleMsg, "Venda finalizada com sucesso!", "#4ade80");
 
     await loadStock();
     await loadDashboard();
     await loadReports();
+  });
+}
+
+/* ==============================
+   🛒 ADICIONAR ITEM AO CARRINHO
+============================== */
+
+if (btnAddSale) {
+  btnAddSale.addEventListener("click", async () => {
+
+    saleMsg.innerText = "";
+
+    if (!selectedSaleProduct) {
+      showMsg(saleMsg, "Selecione um produto válido.", "#f87171");
+      return;
+    }
+
+    const location = saleLocation.value;
+    const qty = parseInt(saleQty.value);
+
+    if (!qty || qty <= 0) {
+      showMsg(saleMsg, "Quantidade inválida.", "#f87171");
+      return;
+    }
+
+    const currentStock = await getStock(selectedSaleProduct.id, location);
+
+    if (qty > currentStock) {
+      showMsg(
+        saleMsg,
+        `Estoque insuficiente. Disponível: ${currentStock}`,
+        "#f87171"
+      );
+      return;
+    }
+
+   // 🔹 Adiciona item ao carrinho
+saleCart.push({
+  productId: selectedSaleProduct.id,
+  productName: selectedSaleProduct.name,
+  quantity: qty,
+  unitPrice: selectedSaleProduct.price,
+  location
+});
+
+renderSaleCart();
+
+// 🔹 Limpa campos para próximo item
+saleSearch.value = "";
+saleQty.value = "";
+selectedSaleProduct = null;
+
+showMsg(saleMsg, "Item adicionado ao carrinho!", "#4ade80");
   });
 }
 /* ==============================
@@ -264,7 +376,10 @@ if (!product) continue;
 
 
 
-/* Relatórios */
+/* ==============================
+   RELATÓRIOS
+============================== */
+
 const reportSearch = document.getElementById("reportSearch");
 const reportLocation = document.getElementById("reportLocation");
 const btnLoadReports = document.getElementById("btnLoadReports");
@@ -276,11 +391,25 @@ const filterSalePayment = document.getElementById("filterSalePayment");
 const filterSaleStart = document.getElementById("filterSaleStart");
 const filterSaleEnd = document.getElementById("filterSaleEnd");
 
-filterSaleLocation.addEventListener("change", loadReports);
-filterSalePayment.addEventListener("change", loadReports);
-filterSaleStart.addEventListener("change", loadReports);
-filterSaleEnd.addEventListener("change", loadReports);
-/* Dashboard */
+if (filterSaleLocation) filterSaleLocation.addEventListener("change", loadReports);
+if (filterSalePayment) filterSalePayment.addEventListener("change", loadReports);
+if (filterSaleStart) filterSaleStart.addEventListener("change", loadReports);
+if (filterSaleEnd) filterSaleEnd.addEventListener("change", loadReports);
+
+/* ==============================
+   RELATÓRIO GERENCIAL
+============================== */
+
+const managerStartDate = document.getElementById("managerStartDate");
+const managerEndDate = document.getElementById("managerEndDate");
+const btnGenerateManagerReport = document.getElementById("btnGenerateManagerReport");
+const btnPrintManagerReport = document.getElementById("btnPrintManagerReport");
+const managerReportContent = document.getElementById("managerReportContent");
+
+/* ==============================
+   DASHBOARD
+============================== */
+
 const statProducts = document.getElementById("statProducts");
 const statSales = document.getElementById("statSales");
 const statSalesTotal = document.getElementById("statSalesTotal");
@@ -354,6 +483,47 @@ function formatMoney(v) {
   });
 }
 
+
+
+/* ==============================
+   🛒 RENDERIZAR CARRINHO
+============================== */
+function renderSaleCart() {
+  if (!saleCartBody || !saleCartTotal) return;
+
+  saleCartBody.innerHTML = "";
+
+  let total = 0;
+
+  saleCart.forEach((item, index) => {
+    const subtotal = item.quantity * item.unitPrice;
+    total += subtotal;
+
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${item.productName}</td>
+      <td>${item.quantity}</td>
+      <td>${formatMoney(item.unitPrice)}</td>
+      <td>${formatMoney(subtotal)}</td>
+      <td>
+        <button class="action-btn action-hide">Remover</button>
+      </td>
+    `;
+
+    const btnRemove = tr.querySelector("button");
+
+    btnRemove.addEventListener("click", () => {
+      saleCart.splice(index, 1);
+      renderSaleCart();
+    });
+
+    saleCartBody.appendChild(tr);
+  });
+
+  saleCartTotal.innerText = formatMoney(total);
+}
+
 function toUpperText(t) {
   if (!t) return "";
   return t.toString().toUpperCase().trim();
@@ -368,6 +538,16 @@ function nowDateTimeLocal() {
 function todayISOFromLocal(localValue) {
   if (!localValue) return null;
   return new Date(localValue).toISOString();
+}
+
+/* ==============================
+   🔑 GERAR ID DE GRUPO DA VENDA
+============================== */
+function generateSaleGroupId() {
+  const now = new Date();
+  const time = now.getTime().toString(36);
+  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `GRP-${time}-${random}`;
 }
 
 async function compressImage(file, maxWidth = 800, quality = 0.7) {
@@ -478,7 +658,14 @@ async function loadAll() {
   await loadProducts();
   await loadStock();
   await loadDashboard();
-  await loadReports(); // ✅ Relatórios carregam junto
+  await loadReports(); // ✅ Relatórios padrão
+
+  // 🔥 Define datas padrão do Relatório Gerencial (hoje)
+  if (managerStartDate && managerEndDate) {
+    const hoje = new Date().toISOString().split("T")[0];
+    managerStartDate.value = hoje;
+    managerEndDate.value = hoje;
+  }
 }
 
 
@@ -884,22 +1071,25 @@ async function loadCountTable() {
         if (!product) return;
 
         // 🔻 Se diminuiu → gera venda automática HOTEL
-        if (delta < 0) {
-          const qtyVendida = Math.abs(delta);
-          const total = qtyVendida * product.price;
+if (delta < 0) {
+  const qtyVendida = Math.abs(delta);
+  const total = qtyVendida * product.price;
 
-          await addDoc(collection(db, "sales"), {
-            productId: product.id,
-            productName: product.name,
-            location: item.location,
-            quantity: qtyVendida,
-            unitPrice: product.price,
-            total,
-            paymentMethod: "HOTEL",
-            note: "VENDA AUTOMÁTICA - CONTAGEM",
-            createdAt: todayISOFromLocal(countDateTime.value),
-          });
-        }
+  const saleGroupId = generateSaleGroupId();
+
+  await addDoc(collection(db, "sales"), {
+    saleGroupId,
+    productId: product.id,
+    productName: product.name,
+    location: item.location,
+    quantity: qtyVendida,
+    unitPrice: product.price,
+    total,
+    paymentMethod: "HOTEL",
+    note: "VENDA AUTOMÁTICA - CONTAGEM",
+    createdAt: todayISOFromLocal(countDateTime.value),
+  });
+}
 
         await updateStock(
           product.id,
@@ -934,24 +1124,42 @@ async function loadReports() {
   const startFilter = filterSaleStart?.value;
   const endFilter = filterSaleEnd?.value;
 
+  const todayStr = new Date().toLocaleDateString("pt-BR");
+
   sales = sales.filter((s) => {
-    let ok = true;
+    if (!s.createdAt) return false;
+
+    const saleDate = new Date(s.createdAt);
+    const saleDayStr = saleDate.toLocaleDateString("pt-BR");
+
+    // 🔥 Se NÃO houver filtro de data → mostra apenas hoje
+    if (!startFilter && !endFilter) {
+      if (saleDayStr !== todayStr) return false;
+    }
 
     if (locationFilter && locationFilter !== "TODOS") {
-      if (s.location !== locationFilter) ok = false;
+      if (s.location !== locationFilter) return false;
     }
 
     if (paymentFilter && paymentFilter !== "TODOS") {
-      if (s.paymentMethod !== paymentFilter) ok = false;
+      if (s.paymentMethod !== paymentFilter) return false;
     }
 
-    if (startFilter && new Date(s.createdAt) < new Date(startFilter)) ok = false;
-    if (endFilter && new Date(s.createdAt) > new Date(endFilter)) ok = false;
+    if (startFilter) {
+      const startDate = new Date(startFilter);
+      if (saleDate < startDate) return false;
+    }
 
-    return ok;
+    if (endFilter) {
+      const endDate = new Date(endFilter);
+      if (saleDate > endDate) return false;
+    }
+
+    return true;
   });
 
-  sales.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  // 🔥 Mais recente primeiro
+  sales.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   reportList.innerHTML = "";
 
@@ -975,35 +1183,29 @@ async function loadReports() {
 
     grouped[day].sales.push(s);
 
-    // 🔁 Se for HOTEL, contabiliza como MÁQ BALCÃO
-    const metodo = s.paymentMethod === "HOTEL"
-      ? "MAQUINA_BALCAO"
-      : s.paymentMethod;
-    
-    // 🔒 Garante que a chave exista
+    const metodo =
+      s.paymentMethod === "HOTEL"
+        ? "MAQUINA_BALCAO"
+        : s.paymentMethod;
+
     if (!grouped[day].totals[metodo]) {
       grouped[day].totals[metodo] = 0;
     }
-    
+
     grouped[day].totals[metodo] += s.total || 0;
     grouped[day].totals.total += s.total || 0;
-    
-    }); // 🔴 fecha sales.forEach
-    
-    Object.keys(grouped).forEach((day) => {
-    
-      // 🔵 Cabeçalho azul do dia
-      const headerRow = document.createElement("tr");
-      headerRow.innerHTML = `
-        <td colspan="7" class="report-day-header">
-          📅 ${day}
-        </td>
-      `;
-    
-  
+  });
+
+  Object.keys(grouped).forEach((day) => {
+
+    const headerRow = document.createElement("tr");
+    headerRow.innerHTML = `
+      <td colspan="7" class="report-day-header">
+        📅 ${day}
+      </td>
+    `;
     reportList.appendChild(headerRow);
 
-    // Vendas do dia
     grouped[day].sales.forEach((s) => {
       const tr = document.createElement("tr");
 
@@ -1031,7 +1233,6 @@ async function loadReports() {
       });
     });
 
-    // Rodapé do dia
     const footerRow = document.createElement("tr");
     footerRow.innerHTML = `
       <td colspan="7" class="report-day-total">
@@ -1048,7 +1249,6 @@ async function loadReports() {
       </td>
     `;
     reportList.appendChild(footerRow);
-
   });
 }
 
