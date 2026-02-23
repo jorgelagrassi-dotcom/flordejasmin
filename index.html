@@ -9,17 +9,19 @@
 
   <body>
     <div id="app">
-      <header class="topbar">
-        <div class="brand">
-          <img src="logo.png" alt="Flor de Jasmin" class="logo-small">
-          <h1>Flor de Jasmin Ateliê</h1>
-        </div>
-  
-        <div class="topbar-right">
-          <span id="userEmail" class="user-email"></span>
-          <button id="btnLogout" class="btn btn-danger hidden">Sair</button>
-        </div>
-      </header>
+      <body>
+        <div id="app">
+          <header class="topbar">
+            <div class="brand">
+              <img src="logo.png" alt="Flor de Jasmin" class="logo-small">
+              <h1>Flor de Jasmin Ateliê</h1>
+            </div>
+      
+            <div class="topbar-right">
+              <span id="userEmail" class="user-email"></span>
+              <button id="btnLogout" class="btn btn-danger hidden">Sair</button>
+            </div>
+          </header>
 
       <!-- LOGIN -->
       <section id="screenLogin" class="screen">
@@ -48,12 +50,14 @@
 <section id="screenSystem" class="screen hidden">
   <nav class="menu">
     <button class="menu-btn active" data-tab="tabDashboard">Dashboard</button>
+    <button class="menu-btn" data-tab="tabRanking">Ranking</button>
     <button class="menu-btn" data-tab="tabProducts">Produtos</button>
     <button class="menu-btn" data-tab="tabStock">Estoque</button>
     <button class="menu-btn" data-tab="tabSales">Vendas</button>
-    <button class="menu-btn" data-tab="tabCount">Contagem</button>
+    <button class="menu-btn" data-tab="tabCount">Contagem R$</button>
     <button class="menu-btn" data-tab="tabReports">Relatórios</button>
     <button class="menu-btn" data-tab="tabPrint">Impressão</button>
+    
   </nav>
 
   <!-- CONTAGEM -->
@@ -491,6 +495,23 @@
   <div class="card">
     <h2>📄 Pré-visualização</h2>
     <div id="printPreview">
+      <!-- Relatório será gerado aqui -->
+    </div>
+  </div>
+</div>
+
+
+<!-- RANKING -->
+<div id="tabRanking" class="tab hidden">
+  <div class="card">
+    <h2>🏆 Ranking de Campeões de Venda</h2>
+    <p class="subtitle">Produtos mais vendidos do sistema</p>
+
+    <div id="rankingContainer" class="ranking-grid"></div>
+  </div>
+</div>
+
+
       <!-- Relatório será gerado aqui -->
     </div>
   </div>
