@@ -55,11 +55,18 @@ const entryQty = document.getElementById("entryQty");
 const entryDateTime = document.getElementById("entryDateTime");
 const btnAddEntry = document.getElementById("btnAddEntry");
 const entryMsg = document.getElementById("entryMsg");
-
 /* Estoque List */
 const stockFilterName = document.getElementById("stockFilterName");
 const stockFilterLocation = document.getElementById("stockFilterLocation");
 const stockList = document.getElementById("stockList");
+
+/* ==============================
+   CONTAGEM
+============================== */
+const countFilterProduct = document.getElementById("countFilterProduct");
+const countLocation = document.getElementById("countLocation");
+const countTableBody = document.getElementById("countTableBody");
+const countDateTime = document.getElementById("countDateTime");
 
 /* ==============================
    💰 VENDA (CARRINHO)
@@ -78,69 +85,6 @@ const btnFinalizeSale = document.getElementById("btnFinalizeSale");
 const saleCartBody = document.getElementById("saleCartBody");
 const saleCartTotal = document.getElementById("saleCartTotal");
 const saleMsg = document.getElementById("saleMsg");
-
-/* 🛒 Carrinho em memória */
-let saleCart = [];
-
-/* ==============================
-   🛒 ADICIONAR ITEM AO CARRINHO
-============================== */
-if (btnAddSale) {
-  btnAddSale.addEventListener("click", async function () {
-
-    saleMsg.innerText = "";
-
-    if (!selectedSaleProduct) {
-      showMsg(saleMsg, "Selecione um produto válido.", "#f87171");
-      return;
-    }
-
-    const location = saleLocation.value;
-    const qty = parseInt(saleQty.value);
-
-    if (!qty || qty <= 0) {
-      showMsg(saleMsg, "Quantidade inválida.", "#f87171");
-      return;
-    }
-
-    const currentStock = await getStock(selectedSaleProduct.id, location);
-
-    if (qty > currentStock) {
-      showMsg(
-        saleMsg,
-        `Estoque insuficiente. Disponível: ${currentStock}`,
-        "#f87171"
-      );
-      return;
-    }
-
-    const existingItem = saleCart.find(
-      item =>
-        item.productId === selectedSaleProduct.id &&
-        item.location === location
-    );
-
-    if (existingItem) {
-      existingItem.quantity += qty;
-    } else {
-      saleCart.push({
-        productId: selectedSaleProduct.id,
-        productName: selectedSaleProduct.name,
-        quantity: qty,
-        unitPrice: selectedSaleProduct.price,
-        location: location
-      });
-    }
-
-    renderSaleCart();
-
-    saleSearch.value = "";
-    saleQty.value = "";
-    selectedSaleProduct = null;
-
-    showMsg(saleMsg, "Item adicionado ao carrinho!", "#4ade80");
-  });
-}
 
 /* ==============================
    ✅ FINALIZAR VENDA
@@ -183,16 +127,26 @@ if (btnFinalizeSale) {
 
       const itemSubtotal = item.quantity * item.unitPrice;
 
+      const discountProporcional = subtotalGeral > 0
+        ? (itemSubtotal / subtotalGeral) * discount
+        : 0;
+
+      const itemTotal = itemSubtotal - discountProporcional;
+
+      // 🔥 salva origem real corretamente
+      const originLocation = item.originLocation || item.location;
+
       await addDoc(collection(db, "sales"), {
         saleGroupId,
         productId: item.productId,
         productName: item.productName,
         location: item.location,
+        originLocation: originLocation,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         subtotal: itemSubtotal,
-        discount: 0,
-        total: itemSubtotal,
+        discount: discountProporcional,
+        total: itemTotal,
         paymentMethod: payment,
         note,
         createdAt: todayISOFromLocal(dateTime),
@@ -205,7 +159,6 @@ if (btnFinalizeSale) {
         -item.quantity
       );
     }
-
     saleCart = [];
     renderSaleCart();
 
@@ -223,14 +176,20 @@ if (btnFinalizeSale) {
   });
 }
 
+
+/* 🛒 Carrinho em memória */
+let saleCart = [];
+
 /* ==============================
    🛒 ADICIONAR ITEM AO CARRINHO
 ============================== */
-
 if (btnAddSale) {
-  btnAddSale.addEventListener("click", async () => {
+  btnAddSale.addEventListener("click", async function () {
 
     saleMsg.innerText = "";
+
+    const saleAlert = document.getElementById("saleAlert");
+    if (saleAlert) saleAlert.innerHTML = "";
 
     if (!selectedSaleProduct) {
       showMsg(saleMsg, "Selecione um produto válido.", "#f87171");
@@ -247,131 +206,155 @@ if (btnAddSale) {
 
     const currentStock = await getStock(selectedSaleProduct.id, location);
 
+    /* ==============================
+       🔥 FALTA DE ESTOQUE
+    ============================== */
     if (qty > currentStock) {
-      showMsg(
-        saleMsg,
-        `Estoque insuficiente. Disponível: ${currentStock}`,
-        "#f87171"
-      );
+
+      const locais = ["LOJA", "BALCAO", "ONLINE"];
+
+      // 🔹 Monta linha horizontal de estoque
+      let estoqueLinha = "";
+
+      for (const localAlt of locais) {
+        const stockAlt = await getStock(selectedSaleProduct.id, localAlt);
+        estoqueLinha += `
+          <span style="margin-right:20px;">
+            <strong>${localAlt}:</strong> ${stockAlt}
+          </span>
+        `;
+      }
+
+      if (saleAlert) {
+        saleAlert.innerHTML = `
+          <div style="color:#ef4444; font-weight:bold; margin-bottom:10px;">
+            ⚠ Estoque insuficiente na ${location}. Disponível: ${currentStock}
+          </div>
+
+          <div style="margin-bottom:15px;">
+            ${estoqueLinha}
+          </div>
+
+          <div style="display:flex; gap:15px; align-items:end; flex-wrap:wrap;">
+            <div>
+              <label>Transferir de:</label><br>
+              <select id="transferFrom">
+                ${locais
+                  .filter(l => l !== location)
+                  .map(l => `<option value="${l}">${l}</option>`)
+                  .join("")}
+              </select>
+            </div>
+
+            <div>
+              <label>Quantidade:</label><br>
+              <input type="number" id="transferQty" min="1" style="width:90px;">
+            </div>
+
+            <div>
+              <button id="btnConfirmTransfer" class="btn btn-secondary">
+                Transferir
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+     // 🔹 Evento do botão Transferir
+const btnConfirmTransfer = document.getElementById("btnConfirmTransfer");
+
+if (btnConfirmTransfer) {
+  btnConfirmTransfer.addEventListener("click", async () => {
+
+    const origem = document.getElementById("transferFrom").value;
+    const qtdTransferir = parseInt(
+      document.getElementById("transferQty").value
+    );
+
+    if (!qtdTransferir || qtdTransferir <= 0) {
+      alert("Quantidade inválida.");
       return;
     }
 
-   // 🔹 Adiciona item ao carrinho
-saleCart.push({
-  productId: selectedSaleProduct.id,
-  productName: selectedSaleProduct.name,
-  quantity: qty,
-  unitPrice: selectedSaleProduct.price,
-  location
-});
+    const estoqueOrigem = await getStock(
+      selectedSaleProduct.id,
+      origem
+    );
 
-renderSaleCart();
+    if (qtdTransferir > estoqueOrigem) {
+      alert(`Estoque insuficiente no ${origem}. Disponível: ${estoqueOrigem}`);
+      return;
+    }
 
-// 🔹 Limpa campos para próximo item
-saleSearch.value = "";
-saleQty.value = "";
-selectedSaleProduct = null;
+    // 🔥 REGISTRA A ORIGEM REAL
+    selectedSaleProduct.originLocation = origem;
 
-showMsg(saleMsg, "Item adicionado ao carrinho!", "#4ade80");
+    // 🔻 remove da origem
+    await updateStock(
+      selectedSaleProduct.id,
+      selectedSaleProduct.name,
+      origem,
+      -qtdTransferir
+    );
+
+    // 🔺 adiciona no local da venda
+    await updateStock(
+      selectedSaleProduct.id,
+      selectedSaleProduct.name,
+      location,
+      qtdTransferir
+    );
+
+    saleAlert.innerHTML = "";
+
+    showMsg(
+      saleMsg,
+      `Transferido ${qtdTransferir} unidade(s) de ${origem} para ${location}. Agora clique novamente em "Adicionar Item".`,
+      "#4ade80"
+    );
+
+    await loadStock();
   });
 }
-/* ==============================
-   CONTAGEM
-============================== */
-const countFilterProduct = document.getElementById("countFilterProduct");
-const countLocation = document.getElementById("countLocation");
-const countDateTime = document.getElementById("countDateTime");
-const countTableBody = document.getElementById("countTableBody");
-const btnSaveCount = document.getElementById("btnSaveCount");
-const countMsg = document.getElementById("countMsg");
 
-// Quando mudar o local, recarrega tabela
-if (countLocation) {
-  countLocation.addEventListener("change", loadCountTable);
+return;
 }
+    /* ==============================
+       🔹 ESTOQUE SUFICIENTE
+    ============================== */
 
-// Quando digitar no filtro de produto, recarrega tabela
-if (countFilterProduct) {
-  countFilterProduct.addEventListener("input", loadCountTable);
-}
+    const existingItem = saleCart.find(
+      item =>
+        item.productId === selectedSaleProduct.id &&
+        item.location === location
+    );
 
-// Botão Registrar Contagem do Local (mantido caso você queira usar ainda)
-if (btnSaveCount) {
-  btnSaveCount.addEventListener("click", saveCount);
-}
-
-async function saveCount() {
-  const location = countLocation.value;
-  const dateTime = countDateTime.value;
-
-  if (!location || !dateTime) return;
-
-  const rows = countTableBody.querySelectorAll("tr");
-
-  for (const row of rows) {
-    const input = row.querySelector(".new-count-input");
-    if (!input) continue;
-
-    const productId = input.dataset.productId;
-    const currentQty = parseInt(input.dataset.currentQty);
-    const newQtyRaw = input.value;
-
-    const newQty = newQtyRaw === ""
-      ? currentQty
-      : parseInt(newQtyRaw);
-
-    if (isNaN(newQty)) continue;
-
-    const delta = newQty - currentQty;
-
-    // Se não houve alteração, ignora
-if (delta === 0) continue;
-
-// Busca produto na memória (já carregado)
-const product = PRODUCTS.find((p) => p.id === productId);
-
-if (!product) continue;
-
-
-    // Se diminuiu estoque → gerar venda automática HOTEL
-    if (delta < 0) {
-      const qtyVendida = Math.abs(delta);
-      const total = qtyVendida * product.price;
-
-      await addDoc(collection(db, "sales"), {
-        productId: product.id,
-        productName: product.name,
-        location,
-        quantity: qtyVendida,
-        unitPrice: product.price,
-        total,
-        paymentMethod: "HOTEL",
-        note: "VENDA AUTOMÁTICA - CONTAGEM",
-        createdAt: todayISOFromLocal(dateTime),
+    if (existingItem) {
+      existingItem.quantity += qty;
+    } else {
+      saleCart.push({
+        productId: selectedSaleProduct.id,
+        productName: selectedSaleProduct.name,
+        quantity: qty,
+        unitPrice: selectedSaleProduct.price,
+        location: location,
+        // 🔥 salva a origem real se houve transferência
+        originLocation: selectedSaleProduct.originLocation || location
       });
     }
 
-    // Atualiza estoque para novo valor
-    await updateStock(
-      product.id,
-      product.name,
-      location,
-      delta
-    );
+    // 🔥 limpa a origem temporária para próxima venda
+    selectedSaleProduct.originLocation = null;
 
-    // Atualiza data/hora do estoque
-    const stockRef = doc(db, "stock", `${product.id}_${location}`);
-    await updateDoc(stockRef, {
-      updatedAt: todayISOFromLocal(dateTime),
-    });
-  }
+    renderSaleCart();
 
-  await loadStock();
-  //await loadReports();
-  await loadDashboard();
-  await loadCountTable();
+    saleSearch.value = "";
+    saleQty.value = "";
+    selectedSaleProduct = null;
+
+    showMsg(saleMsg, "Item adicionado ao carrinho!", "#4ade80");
+  });
 }
-
 
 
 
@@ -412,15 +395,44 @@ if (btnGeneratePrint && printPreview) {
     const locationFilter = printLocation?.value;
 
     sales = sales.filter((s) => {
-      const saleDate = new Date(s.createdAt);
 
-      if (startFilter && saleDate < new Date(startFilter)) return false;
-      if (endFilter && saleDate > new Date(endFilter)) return false;
-      if (locationFilter && s.location !== locationFilter) return false;
-
+      // 🔹 Converte createdAt com segurança
+      let saleDate = new Date(s.createdAt);
+    
+      if (isNaN(saleDate)) {
+        // tenta converter formato brasileiro
+        const parts = s.createdAt.split(/[\/, :]/);
+        saleDate = new Date(
+          parts[2],            // ano
+          parts[1] - 1,        // mês
+          parts[0],            // dia
+          parts[3] || 0,       // hora
+          parts[4] || 0        // minuto
+        );
+      }
+    
+      let startDate = null;
+      let endDate = null;
+    
+      if (startFilter) {
+        startDate = new Date(startFilter);
+        startDate.setHours(0, 0, 0, 0);
+      }
+    
+      if (endFilter) {
+        endDate = new Date(endFilter);
+        endDate.setHours(23, 59, 59, 999);
+      }
+    
+      if (startDate && saleDate < startDate) return false;
+      if (endDate && saleDate > endDate) return false;
+    
+      if (locationFilter && locationFilter !== "TODOS") {
+        if (s.location !== locationFilter) return false;
+      }
+    
       return true;
     });
-
     sales.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
     let totalGeral = 0;
@@ -585,8 +597,6 @@ function formatMoney(v) {
   });
 }
 
-
-
 /* ==============================
    🛒 RENDERIZAR CARRINHO
 ============================== */
@@ -595,11 +605,31 @@ function renderSaleCart() {
 
   saleCartBody.innerHTML = "";
 
-  let total = 0;
+  let subtotalGeral = 0;
+
+  // 🔹 Primeiro calcula subtotal bruto
+  saleCart.forEach((item) => {
+    subtotalGeral += item.quantity * item.unitPrice;
+  });
+
+  // 🔥 Pega desconto digitado
+  const discount = parseFloat(
+    document.getElementById("saleDiscount")?.value || 0
+  );
+
+  let totalFinal = 0;
 
   saleCart.forEach((item, index) => {
     const subtotal = item.quantity * item.unitPrice;
-    total += subtotal;
+
+    // 🔥 Desconto proporcional visual
+    const discountProporcional = subtotalGeral > 0
+      ? (subtotal / subtotalGeral) * discount
+      : 0;
+
+    const subtotalComDesconto = subtotal - discountProporcional;
+
+    totalFinal += subtotalComDesconto;
 
     const tr = document.createElement("tr");
 
@@ -607,7 +637,15 @@ function renderSaleCart() {
       <td>${item.productName}</td>
       <td>${item.quantity}</td>
       <td>${formatMoney(item.unitPrice)}</td>
-      <td>${formatMoney(subtotal)}</td>
+      <td>
+        ${formatMoney(subtotal)}
+        <br>
+        <small style="color:#ef4444;">
+          - ${formatMoney(discountProporcional)}
+        </small>
+        <br>
+        <strong>${formatMoney(subtotalComDesconto)}</strong>
+      </td>
       <td>
         <button class="action-btn action-hide">Remover</button>
       </td>
@@ -623,7 +661,15 @@ function renderSaleCart() {
     saleCartBody.appendChild(tr);
   });
 
-  saleCartTotal.innerText = formatMoney(total);
+  saleCartTotal.innerText = formatMoney(
+    totalFinal >= 0 ? totalFinal : 0
+  );
+}
+
+/* 🔥 Atualiza total automaticamente ao digitar desconto */
+const discountInput = document.getElementById("saleDiscount");
+if (discountInput) {
+  discountInput.addEventListener("input", renderSaleCart);
 }
 
 function toUpperText(t) {
@@ -633,15 +679,17 @@ function toUpperText(t) {
 
 function nowDateTimeLocal() {
   const d = new Date();
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().slice(0, 16);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 16);
 }
 
 function todayISOFromLocal(localValue) {
   if (!localValue) return null;
-  return new Date(localValue).toISOString();
-}
 
+  // 🔥 SALVA COMO TIMESTAMP (SEM UTC / SEM DESLOCAMENTO)
+  return new Date(localValue).getTime();
+}
 /* ==============================
    🔑 GERAR ID DE GRUPO DA VENDA
 ============================== */
@@ -761,6 +809,7 @@ async function loadAll() {
   await loadStock();
   await loadDashboard();
   await loadReports(); // ✅ Relatórios carregam junto
+  await loadCountTable(); // 🔥 Carrega aba Contagem
 }
 
 
@@ -777,9 +826,8 @@ async function loadStock() {
   renderStockList();
 }
 
-
 /* ==============================
-   FILTRO ESTOQUE
+   FILTROS ESTOQUE E CONTAGEM
 ============================== */
 
 if (stockFilterName) {
@@ -791,6 +839,20 @@ if (stockFilterName) {
 if (stockFilterLocation) {
   stockFilterLocation.addEventListener("change", () => {
     renderStockList();
+  });
+}
+
+/* 🔥 EVENTOS CONTAGEM */
+
+if (countFilterProduct) {
+  countFilterProduct.addEventListener("input", () => {
+    loadCountTable();
+  });
+}
+
+if (countLocation) {
+  countLocation.addEventListener("change", () => {
+    loadCountTable();
   });
 }
 
@@ -1081,7 +1143,11 @@ async function loadDashboard() {
   if (statProducts) statProducts.innerText = activeProducts;
   if (statSales) statSales.innerText = salesSnap.size;
   if (statSalesTotal) statSalesTotal.innerText = formatMoney(totalVendido);
-}/* ==============================
+}
+
+
+
+/* ==============================
    CONTAGEM - Carregar tabela com filtro por produto e local
 ============================== */
 async function loadCountTable() {
@@ -1106,9 +1172,11 @@ async function loadCountTable() {
       );
     }
 
-    // 🔎 FILTRO POR LOCAL (opcional)
+    // 🔎 FILTRO POR LOCAL
     if (location) {
-      stockItems = stockItems.filter((s) => s.location === location);
+      stockItems = stockItems.filter((s) =>
+        s.location === location && s.quantity > 0
+      );
     }
 
     stockItems.sort((a, b) =>
@@ -1139,7 +1207,7 @@ async function loadCountTable() {
           <input 
             type="number"
             min="0"
-            value="${item.quantity}"
+            placeholder="Digite a nova quantidade"
             class="new-count-input"
           >
         </td>
@@ -1166,25 +1234,27 @@ async function loadCountTable() {
         if (!product) return;
 
         // 🔻 Se diminuiu → gera venda automática HOTEL
-if (delta < 0) {
-  const qtyVendida = Math.abs(delta);
-  const total = qtyVendida * product.price;
+        if (delta < 0) {
+          const qtyVendida = Math.abs(delta);
+          const total = qtyVendida * product.price;
+          const saleGroupId = generateSaleGroupId();
 
-  const saleGroupId = generateSaleGroupId();
-
-  await addDoc(collection(db, "sales"), {
-    saleGroupId,
-    productId: product.id,
-    productName: product.name,
-    location: item.location,
-    quantity: qtyVendida,
-    unitPrice: product.price,
-    total,
-    paymentMethod: "HOTEL",
-    note: "VENDA AUTOMÁTICA - CONTAGEM",
-    createdAt: todayISOFromLocal(countDateTime.value),
-  });
-}
+          await addDoc(collection(db, "sales"), {
+            saleGroupId,
+            productId: product.id,
+            productName: product.name,
+            location: item.location,
+            originLocation: item.location,
+            quantity: qtyVendida,
+            unitPrice: product.price,
+            subtotal: total,
+            discount: 0,
+            total,
+            paymentMethod: "HOTEL",
+            note: "VENDA AUTOMÁTICA - CONTAGEM",
+            createdAt: todayISOFromLocal(countDateTime.value),
+          });
+        }
 
         await updateStock(
           product.id,
@@ -1219,34 +1289,35 @@ async function loadReports() {
   const startFilter = filterSaleStart?.value;
   const endFilter = filterSaleEnd?.value;
 
-  const today = new Date().toLocaleDateString("pt-BR");
-
   sales = sales.filter((s) => {
-    let ok = true;
 
     const saleDate = new Date(s.createdAt);
-    const saleDay = saleDate.toLocaleDateString("pt-BR");
 
-    // 🔥 Se NÃO houver filtro de data → mostra apenas hoje
-    if (!startFilter && !endFilter) {
-      if (saleDay !== today) ok = false;
+    let startDate = null;
+    let endDate = null;
+
+    if (startFilter) {
+      startDate = new Date(startFilter);
     }
 
-    if (locationFilter && locationFilter !== "TODOS") {
-      if (s.location !== locationFilter) ok = false;
+    if (endFilter) {
+      endDate = new Date(endFilter);
     }
 
-    if (paymentFilter && paymentFilter !== "TODOS") {
-      if (s.paymentMethod !== paymentFilter) ok = false;
+    if (startDate && saleDate < startDate) return false;
+    if (endDate && saleDate > endDate) return false;
+
+    if (locationFilter && locationFilter !== "") {
+      if (s.location !== locationFilter) return false;
     }
 
-    if (startFilter && saleDate < new Date(startFilter)) ok = false;
-    if (endFilter && saleDate > new Date(endFilter)) ok = false;
+    if (paymentFilter && paymentFilter !== "") {
+      if (s.paymentMethod !== paymentFilter) return false;
+    }
 
-    return ok;
+    return true;
   });
 
-  // 🔥 Mais recente primeiro
   sales.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   reportList.innerHTML = "";
@@ -1339,7 +1410,6 @@ async function loadReports() {
     reportList.appendChild(footerRow);
   });
 }
-
 /* ==============================
    EDITAR VENDA
 ============================== */
@@ -1418,9 +1488,6 @@ async function editSale(sale) {
     alert("Erro ao editar venda.");
   }
 }
-
-
-
 /* ==============================
    EXCLUIR VENDA
 ============================== */
@@ -1432,25 +1499,51 @@ async function deleteSale(sale) {
   if (!confirmDelete) return;
 
   try {
+
+    const origemReal = sale.originLocation || sale.location;
+    const localVenda = sale.location;
+
+    // 🔹 1️⃣ Desfaz a VENDA (devolve para o local onde foi vendida)
     await updateStock(
       sale.productId,
       sale.productName,
-      sale.location,
+      localVenda,
       sale.quantity
     );
+
+    // 🔹 2️⃣ Se houve transferência, desfaz a TRANSFERÊNCIA
+    if (origemReal !== localVenda) {
+
+      // Remove novamente do local da venda
+      await updateStock(
+        sale.productId,
+        sale.productName,
+        localVenda,
+        -sale.quantity
+      );
+
+      // Devolve para a origem real
+      await updateStock(
+        sale.productId,
+        sale.productName,
+        origemReal,
+        sale.quantity
+      );
+    }
 
     await deleteDoc(doc(db, "sales", sale.id));
 
     await loadStock();
     await loadDashboard();
-    //await loadReports();
-    alert("Venda excluída com sucesso e estoque restaurado!");
+    await loadReports();
+
+    alert("Venda excluída e estoque restaurado corretamente!");
+
   } catch (error) {
     console.error("Erro ao excluir venda:", error);
     alert("Erro ao excluir venda.");
   }
 }
-
 // ==============================
 // 🔥 FUNÇÃO TEMPORÁRIA - LIMPAR BANCO
 // ==============================

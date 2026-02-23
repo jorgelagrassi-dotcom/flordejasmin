@@ -256,9 +256,10 @@ input::placeholder {
 
 .stat {
   background: var(--bg-input);
-  padding: 20px;
-  border-radius: 14px;
+  padding: 14px; /* menor */
+  border-radius: 12px;
   text-align: center;
+  min-height: 50px;
 }
 
 .stat-title {
@@ -269,10 +270,10 @@ input::placeholder {
 
 .stat-value {
   display: block;
-  font-size: 28px;
-  font-weight: bold;
-  margin-top: 10px;
-  color: var(--success);
+  font-size: 22px; /* menor */
+  font-weight: 600;
+  margin-top: 8px;
+  color: #111111; /* preto */
 }
 
 /* ==============================

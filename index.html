@@ -114,30 +114,33 @@
   </div>
 
         <!-- DASHBOARD -->
-        <div id="tabDashboard" class="tab">
-          <div class="card">
-            <h2>📊 Dashboard</h2>
-            <p class="subtitle">Resumo geral do sistema</p>
+<div id="tabDashboard" class="tab">
+  <div class="card">
+    <h2>📊 Dashboard</h2>
+    <p class="subtitle">Resumo geral do sistema</p>
 
-            <div class="grid-3">
-              <div class="stat">
-                <span class="stat-title">Produtos Ativos</span>
-                <span id="statProducts" class="stat-value">0</span>
-              </div>
+    <div class="grid-3">
+      <div class="stat">
+        <span class="stat-title">Produtos Ativos</span>
+        <span id="statProducts" class="stat-value">0</span>
+      </div>
 
-              <div class="stat">
-                <span class="stat-title">Vendas</span>
-                <span id="statSales" class="stat-value">0</span>
-              </div>
+      <div class="stat">
+        <span class="stat-title">Vendas</span>
+        <span id="statSales" class="stat-value">0</span>
+      </div>
 
-              <div class="stat">
-                <span class="stat-title">Total Vendido</span>
-                <span id="statSalesTotal" class="stat-value">R$ 0,00</span>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div class="stat">
+        <span class="stat-title">Total Vendido</span>
+        <span id="statSalesTotal" class="stat-value">R$ 0,00</span>
+      </div>
+    </div>
 
+    <!-- 🔥 NOVA ÁREA SEMANAL / MENSAL -->
+    <div id="dashboardWeeks" style="margin-top:30px;"></div>
+
+  </div>
+</div>
         <!-- PRODUTOS -->
         <div id="tabProducts" class="tab hidden">
           <div class="card">
@@ -282,7 +285,7 @@
         <div id="tabSales" class="tab hidden">
           <div class="card">
             <h2>💰 Registrar Venda</h2>
-
+            <div id="saleAlert" style="margin:10px 0;"></div>
             <div class="form-group">
               <label>Pesquisar Produto</label>
               <input type="text" id="saleSearch" placeholder="Digite TRAV para achar travesseiros" />
@@ -367,11 +370,16 @@
               <div style="margin-top:15px; font-weight:bold;">
                 Total Parcial: <span id="saleCartTotal">R$ 0,00</span>
               </div>
-            
-              <button id="btnFinalizeSale" class="btn btn-success" style="margin-top:15px;">
+              
+              <button 
+                id="btnFinalizeSale" 
+                type="button"
+                class="btn btn-success" 
+                style="margin-top:15px;"
+              >
                 ✅ Finalizar Venda
               </button>
-            </div>
+              </div>
             
             <p id="saleMsg" class="msg"></p>
           </div>
