@@ -20,6 +20,8 @@ import {
   getDownloadURL,
 } from "./firebase.js";
 
+console.log("APP.JS CARREGOU");
+
 /* ==============================
    ELEMENTOS
 ============================== */
@@ -528,6 +530,8 @@ const statProducts = document.getElementById("statProducts");
 const statSales = document.getElementById("statSales");
 const statSalesTotal = document.getElementById("statSalesTotal");
 
+const rankingContainer = document.getElementById("rankingContainer");
+
 /* ==============================
    VARIÁVEIS
 ============================== */
@@ -739,16 +743,26 @@ async function compressImage(file, maxWidth = 800, quality = 0.7) {
 ============================== */
 document.querySelectorAll(".menu-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
+
     document.querySelectorAll(".menu-btn").forEach((b) =>
       b.classList.remove("active")
     );
+
     btn.classList.add("active");
 
     const tabId = btn.getAttribute("data-tab");
+
     document.querySelectorAll(".tab").forEach((tab) =>
       tab.classList.add("hidden")
     );
+
     document.getElementById(tabId).classList.remove("hidden");
+
+    // 🔥 Executa ranking apenas quando clicar na aba Ranking
+    if (tabId === "tabRanking") {
+      loadRanking();
+    }
+
   });
 });
 
@@ -810,6 +824,7 @@ async function loadAll() {
   await loadDashboard();
   await loadReports(); // ✅ Relatórios carregam junto
   await loadCountTable(); // 🔥 Carrega aba Contagem
+  await loadRanking(); // 🏆 Carrega Ranking
 }
 
 
@@ -1145,6 +1160,97 @@ async function loadDashboard() {
   if (statSalesTotal) statSalesTotal.innerText = formatMoney(totalVendido);
 }
 
+/* ==============================
+   RANKING
+============================== */
+async function loadRanking() {
+
+  const container = document.getElementById("rankingContainer");
+  if (!container) return;
+
+  container.innerHTML = "Carregando ranking...";
+
+  try {
+
+    const snap = await getDocs(collection(db, "sales"));
+    const sales = snap.docs.map(d => d.data());
+
+    const ranking = {};
+
+    sales.forEach(sale => {
+      const id = sale.productId;
+
+      if (!ranking[id]) {
+        ranking[id] = {
+          productName: sale.productName,
+          totalQty: 0
+        };
+      }
+
+      ranking[id].totalQty += sale.quantity;
+    });
+
+    const rankingArray = Object.values(ranking)
+      .sort((a, b) => b.totalQty - a.totalQty);
+
+    container.innerHTML = "";
+
+    const top3 = rankingArray.slice(0, 3);
+    const rest = rankingArray.slice(3);
+
+    /* ===== PÓDIO ===== */
+    const podium = document.createElement("div");
+    podium.className = "podium";
+
+    podium.innerHTML = `
+      <div class="podium-item second">
+        <div class="position">🥈 2º</div>
+        <div class="name">${top3[1]?.productName || "-"}</div>
+        <div class="qty">${top3[1]?.totalQty || 0} un</div>
+      </div>
+
+      <div class="podium-item first">
+        <div class="position">🥇 1º</div>
+        <div class="name">${top3[0]?.productName || "-"}</div>
+        <div class="qty">${top3[0]?.totalQty || 0} un</div>
+      </div>
+
+      <div class="podium-item third">
+        <div class="position">🥉 3º</div>
+        <div class="name">${top3[2]?.productName || "-"}</div>
+        <div class="qty">${top3[2]?.totalQty || 0} un</div>
+      </div>
+    `;
+
+    container.appendChild(podium);
+
+    /* ===== RESTANTE ===== */
+    if (rest.length > 0) {
+
+      const list = document.createElement("div");
+      list.className = "ranking-list";
+
+      rest.forEach((item, index) => {
+        const row = document.createElement("div");
+        row.className = "ranking-row";
+
+        row.innerHTML = `
+          <span class="position">${index + 4}º</span>
+          <span class="name">${item.productName}</span>
+          <span class="qty">${item.totalQty} un</span>
+        `;
+
+        list.appendChild(row);
+      });
+
+      container.appendChild(list);
+    }
+
+  } catch (error) {
+    console.error("Erro no ranking:", error);
+    container.innerHTML = "Erro ao carregar ranking.";
+  }
+}
 
 
 /* ==============================
