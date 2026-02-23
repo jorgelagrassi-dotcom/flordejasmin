@@ -1165,10 +1165,15 @@ async function loadDashboard() {
 ============================== */
 async function loadRanking() {
 
-  const container = document.getElementById("rankingContainer");
-  if (!container) return;
+  const top3Container = document.getElementById("rankingTop3");
+  const imasContainer = document.getElementById("rankingImas");
+  const listContainer = document.getElementById("rankingList");
 
-  container.innerHTML = "Carregando ranking...";
+  if (!top3Container || !imasContainer || !listContainer) return;
+
+  top3Container.innerHTML = "Carregando...";
+  imasContainer.innerHTML = "";
+  listContainer.innerHTML = "";
 
   try {
 
@@ -1176,80 +1181,139 @@ async function loadRanking() {
     const sales = snap.docs.map(d => d.data());
 
     const ranking = {};
+    const rankingImas = {};
 
     sales.forEach(sale => {
-      const id = sale.productId;
 
+      const id = sale.productId;
+      const name = sale.productName || "";
+      const nameLower = name.toLowerCase();
+
+      // Ranking Geral
       if (!ranking[id]) {
         ranking[id] = {
-          productName: sale.productName,
+          productName: name,
           totalQty: 0
         };
       }
-
       ranking[id].totalQty += sale.quantity;
+
+      // Ranking Ímãs (somente começando com)
+      if (
+        nameLower.startsWith("ima") ||
+        nameLower.startsWith("imã")
+      ) {
+        if (!rankingImas[id]) {
+          rankingImas[id] = {
+            productName: name,
+            totalQty: 0
+          };
+        }
+        rankingImas[id].totalQty += sale.quantity;
+      }
+
     });
 
     const rankingArray = Object.values(ranking)
-      .sort((a, b) => b.totalQty - a.totalQty);
+    .sort((a, b) => b.totalQty - a.totalQty);
 
-    container.innerHTML = "";
+  const rankingImasArray = Object.values(rankingImas)
+    .sort((a, b) => b.totalQty - a.totalQty);
 
-    const top3 = rankingArray.slice(0, 3);
-    const rest = rankingArray.slice(3);
+  top3Container.innerHTML = "";
+  imasContainer.innerHTML = "";
+  listContainer.innerHTML = "";
 
-    /* ===== PÓDIO ===== */
-    const podium = document.createElement("div");
-    podium.className = "podium";
+  /* ===== TOP 3 GERAL (COM EMPATE) ===== */
+  renderPodium(top3Container, rankingArray, "📊 Top 3 Geral");
 
-    podium.innerHTML = `
-      <div class="podium-item second">
-        <div class="position">🥈 2º</div>
-        <div class="name">${top3[1]?.productName || "-"}</div>
-        <div class="qty">${top3[1]?.totalQty || 0} un</div>
+  /* ===== TOP 3 ÍMÃS (COM EMPATE) ===== */
+  renderPodium(imasContainer, rankingImasArray, "🧲 Top 3 Ímãs");
+
+  /* ===== LISTA GERAL ===== */
+  const rest = rankingArray.slice(3);
+
+  if (rest.length > 0) {
+
+    const title = document.createElement("h3");
+    title.innerText = "📋 Ranking Geral Completo";
+    listContainer.appendChild(title);
+
+    const list = document.createElement("div");
+    list.className = "ranking-list";
+
+    rest.forEach((item, index) => {
+
+      const row = document.createElement("div");
+      row.className = "ranking-row";
+
+      row.innerHTML = `
+        <span class="position">${index + 4}º</span>
+        <span class="name">${item.productName}</span>
+        <span class="qty">${item.totalQty} un</span>
+      `;
+
+      list.appendChild(row);
+    });
+
+    listContainer.appendChild(list);
+  }
+
+} catch (error) {
+  console.error("Erro no ranking:", error);
+  top3Container.innerHTML = "Erro ao carregar ranking.";
+}
+}
+
+/* ==============================
+   FUNÇÃO AUXILIAR PÓDIO (COM EMPATES)
+============================== */
+function renderPodium(container, rankingArray, titleText) {
+
+  const title = document.createElement("h3");
+  title.innerText = titleText;
+  container.appendChild(title);
+
+  if (!rankingArray || rankingArray.length === 0) {
+    const empty = document.createElement("p");
+    empty.innerText = "Nenhum dado disponível.";
+    container.appendChild(empty);
+    return;
+  }
+
+  // 1️⃣ Pega quantidades únicas e ordena
+  const uniqueQuantities = [
+    ...new Set(rankingArray.map(item => item.totalQty))
+  ].sort((a, b) => b - a);
+
+  // 2️⃣ Pegamos os 3 maiores valores
+  const topQuantities = uniqueQuantities.slice(0, 3);
+
+  const positions = ["🥇 1º", "🥈 2º", "🥉 3º"];
+  const classes = ["first", "second", "third"];
+
+  const podium = document.createElement("div");
+  podium.className = "podium";
+
+  topQuantities.forEach((qty, index) => {
+
+    const group = rankingArray.filter(item => item.totalQty === qty);
+
+    const itemDiv = document.createElement("div");
+    itemDiv.className = `podium-item ${classes[index]}`;
+
+    itemDiv.innerHTML = `
+      <div class="position">${positions[index]}</div>
+      <div class="name">
+        ${group.map(p => p.productName).join("<br>")}
       </div>
-
-      <div class="podium-item first">
-        <div class="position">🥇 1º</div>
-        <div class="name">${top3[0]?.productName || "-"}</div>
-        <div class="qty">${top3[0]?.totalQty || 0} un</div>
-      </div>
-
-      <div class="podium-item third">
-        <div class="position">🥉 3º</div>
-        <div class="name">${top3[2]?.productName || "-"}</div>
-        <div class="qty">${top3[2]?.totalQty || 0} un</div>
-      </div>
+      <div class="qty">${qty} un</div>
     `;
 
-    container.appendChild(podium);
+    podium.appendChild(itemDiv);
+  });
 
-    /* ===== RESTANTE ===== */
-    if (rest.length > 0) {
-
-      const list = document.createElement("div");
-      list.className = "ranking-list";
-
-      rest.forEach((item, index) => {
-        const row = document.createElement("div");
-        row.className = "ranking-row";
-
-        row.innerHTML = `
-          <span class="position">${index + 4}º</span>
-          <span class="name">${item.productName}</span>
-          <span class="qty">${item.totalQty} un</span>
-        `;
-
-        list.appendChild(row);
-      });
-
-      container.appendChild(list);
-    }
-
-  } catch (error) {
-    console.error("Erro no ranking:", error);
-    container.innerHTML = "Erro ao carregar ranking.";
-  }
+  container.appendChild(podium);
 }
 
 
