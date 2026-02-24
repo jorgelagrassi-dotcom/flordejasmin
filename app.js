@@ -1353,7 +1353,6 @@ if (location) {
     s.location === location
   );
 }
-
 stockItems.sort((a, b) =>
   a.productName.localeCompare(b.productName)
 );
@@ -1365,7 +1364,13 @@ stockItems.forEach((item) => {
   const tr = document.createElement("tr");
 
   tr.innerHTML = `
-    <td>${item.productName}</td>
+    <td>
+      ${item.productName}
+      <br>
+      <small style="color:#6b7280; font-weight:600;">
+        ${item.location}
+      </small>
+    </td>
 
     <td>
       ${item.quantity}
@@ -1383,7 +1388,7 @@ stockItems.forEach((item) => {
       <input 
         type="number"
         min="0"
-        placeholder="Digite a nova quantidade"
+        placeholder=""
         class="new-count-input"
       >
     </td>
@@ -1546,7 +1551,7 @@ async function loadReports() {
       const tr = document.createElement("tr");
 
       tr.innerHTML = `
-        <td>${s.productName}</td>
+        <td>${s.productName} - ${s.location}</td>
         <td>${s.location}</td>
         <td>${s.quantity}</td>
         <td>${formatMoney(s.total || 0)}</td>
@@ -1586,8 +1591,7 @@ async function loadReports() {
     `;
     reportList.appendChild(footerRow);
   });
-}
-/* ==============================
+}/* ==============================
    EDITAR VENDA
 ============================== */
 async function editSale(sale) {

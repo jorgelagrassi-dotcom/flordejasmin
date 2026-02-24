@@ -710,3 +710,10 @@ tr:hover {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
+
+/* 🔥 Ajuste tamanho input Contagem */
+.new-count-input {
+  width: 50px;      /* controla largura */
+  padding: 6px;     /* diminui altura */
+  font-size: 14px;  /* texto menor */
+}
