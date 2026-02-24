@@ -1036,6 +1036,7 @@ btnAddProduct.addEventListener("click", async () => {
     location: "LOJA",
     quantity: loja,
     updatedAt: new Date().toISOString(),
+    hasMovement: loja > 0
   });
 
   await setDoc(doc(db, "stock", `${docRef.id}_BALCAO`), {
@@ -1044,6 +1045,7 @@ btnAddProduct.addEventListener("click", async () => {
     location: "BALCAO",
     quantity: balcao,
     updatedAt: new Date().toISOString(),
+    hasMovement: balcao > 0
   });
 
   await setDoc(doc(db, "stock", `${docRef.id}_ONLINE`), {
@@ -1052,6 +1054,7 @@ btnAddProduct.addEventListener("click", async () => {
     location: "ONLINE",
     quantity: online,
     updatedAt: new Date().toISOString(),
+    hasMovement: online > 0
   });
 
   productName.value = "";
@@ -1334,8 +1337,7 @@ async function loadCountTable() {
   if (!countTableBody) return;
 
   try {
-
-    // 🔥 oculta tabela antes de reconstruir
+// 🔥 oculta tabela antes de reconstruir
 countTableBody.style.display = "none";
 
 const snap = await getDocs(collection(db, "stock"));
@@ -1353,54 +1355,76 @@ if (productFilter) {
 
 if (location) {
   stockItems = stockItems.filter((s) =>
-    s.location === location
+    s.location === location &&
+    (
+      s.quantity > 0 ||
+      s.updatedAt
+    )
   );
 }
-stockItems.sort((a, b) =>
-  a.productName.localeCompare(b.productName)
-);
+
+// 🔥 NOVA ORDENAÇÃO
+stockItems.sort((a, b) => {
+
+  // Primeiro: estoque positivo vem antes
+  if (a.quantity > 0 && b.quantity === 0) return -1;
+  if (a.quantity === 0 && b.quantity > 0) return 1;
+
+  // Depois: ordem alfabética
+  return a.productName.localeCompare(b.productName);
+
+});
 
 countTableBody.innerHTML = "";
 
-stockItems.forEach((item) => {
+// 🔥 separa positivos e zerados
+const positivos = stockItems.filter(item => item.quantity > 0);
+const zerados = stockItems.filter(item => item.quantity === 0);
+
+// 🔹 ordena ambos alfabeticamente
+positivos.sort((a, b) => a.productName.localeCompare(b.productName));
+zerados.sort((a, b) => a.productName.localeCompare(b.productName));
+
+// 🔥 função de renderização reutilizável
+function renderRow(item) {
 
   const tr = document.createElement("tr");
 
   tr.innerHTML = `
   <td data-label="Produto">
-  ${item.productName}
-  <br>
-  <small style="color:#6b7280; font-weight:600;">
-    ${item.location}
-  </small>
-</td>
+    ${item.productName}
+    <br>
+    <small style="color:#6b7280; font-weight:600;">
+      ${item.location}
+    </small>
+  </td>
 
-    <td>
-      ${item.quantity}
-      <br>
-      <small>
-        ${
-          item.updatedAt
-            ? new Date(item.updatedAt).toLocaleString("pt-BR")
-            : "-"
-        }
-      </small>
-    </td>
+  <td>
+    ${item.quantity}
+    <br>
+    <small>
+      ${
+        item.updatedAt
+          ? new Date(item.updatedAt).toLocaleString("pt-BR")
+          : "-"
+      }
+    </small>
+  </td>
 
-    <td>
-      <input 
-        type="number"
-        min="0"
-        placeholder=""
-        class="new-count-input"
-      >
-    </td>
+  <td>
+    <input 
+      type="number"
+      min="0"
+      placeholder=""
+      class="new-count-input"
+    >
+  </td>
 
-    <td>
-      <button class="action-btn action-edit-stock">
-        SALVAR
-      </button>
-    </td>
+  <td>
+    <button class="action-btn action-edit-stock">
+      SALVAR
+    </button>
+  </td>
   `;
 
   const input = tr.querySelector(".new-count-input");
@@ -1451,14 +1475,59 @@ stockItems.forEach((item) => {
     await loadCountTable();
   });
 
-  countTableBody.appendChild(tr);
-});
-    // 🔥 mostra tabela depois que tudo está pronto
-    countTableBody.style.display = "";
+  return tr;
+}
 
-  } catch (error) {
-    console.error("Erro ao carregar tabela de contagem:", error);
-  }
+// 🔥 renderiza positivos primeiro
+positivos.forEach(item => {
+  countTableBody.appendChild(renderRow(item));
+});
+
+// 🔥 acordeon para zerados
+if (zerados.length > 0) {
+
+  const toggleRow = document.createElement("tr");
+  toggleRow.innerHTML = `
+    <td colspan="4" style="cursor:pointer; font-weight:600; color:#2563eb;">
+      ▶ Itens zerados (${zerados.length})
+    </td>
+  `;
+
+  countTableBody.appendChild(toggleRow);
+
+  let aberto = false;
+  const zeradosRows = [];
+
+  toggleRow.addEventListener("click", () => {
+
+    aberto = !aberto;
+
+    toggleRow.innerHTML = `
+      <td colspan="4" style="cursor:pointer; font-weight:600; color:#2563eb;">
+        ${aberto ? "▼" : "▶"} Itens zerados (${zerados.length})
+      </td>
+    `;
+
+    if (aberto) {
+      zerados.forEach(item => {
+        const row = renderRow(item);
+        zeradosRows.push(row);
+        countTableBody.appendChild(row);
+      });
+    } else {
+      zeradosRows.forEach(row => row.remove());
+      zeradosRows.length = 0;
+    }
+
+  });
+}
+
+// 🔥 mostra tabela depois que tudo está pronto
+countTableBody.style.display = "";
+
+} catch (error) {
+  console.error("Erro ao carregar tabela de contagem:", error);
+}
 }
 /* ==============================
    RELATÓRIOS
