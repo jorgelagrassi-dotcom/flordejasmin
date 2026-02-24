@@ -92,19 +92,21 @@
 
       </div>
 
-      <div class="table-wrapper" style="margin-top:20px;">
-        <table>
-          <thead>
-            <tr>
-              <th>Produto</th>
-              <th>Estoque Atual<br><small>Data/Hora</small></th>
-              <th>Nova Contagem</th>
-              <th>Diferença</th>
-            </tr>
-          </thead>
-          <tbody id="countTableBody">
-          </tbody>
-        </table>
+      <div class="table-wrapper count-table-wrapper" style="margin-top:20px;">
+        <div class="count-table-scroll">
+          <table class="count-table">
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th>Estoque Atual<br><small>Data/Hora</small></th>
+                <th>Nova Contagem</th>
+                <th>Diferença</th>
+              </tr>
+            </thead>
+            <tbody id="countTableBody">
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <button id="btnSaveCount" class="btn btn-success" style="margin-top:20px;">
