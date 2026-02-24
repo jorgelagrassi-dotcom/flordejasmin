@@ -638,21 +638,24 @@ function renderSaleCart() {
     const tr = document.createElement("tr");
 
     tr.innerHTML = `
-      <td>${item.productName}</td>
-      <td>${item.quantity}</td>
-      <td>${formatMoney(item.unitPrice)}</td>
-      <td>
-        ${formatMoney(subtotal)}
-        <br>
-        <small style="color:#ef4444;">
-          - ${formatMoney(discountProporcional)}
-        </small>
-        <br>
-        <strong>${formatMoney(subtotalComDesconto)}</strong>
-      </td>
-      <td>
-        <button class="action-btn action-hide">Remover</button>
-      </td>
+  <td data-label="Produto">
+    ${item.productName}<br>
+    <span style="font-size:12px; font-weight:600; color:#6b7280;">
+      ${item.location}
+    </span>
+  </td>
+
+  <td data-label="Estoque Atual">
+    ${item.quantity}
+    <br>
+    <small>
+      ${
+        item.updatedAt
+          ? new Date(item.updatedAt).toLocaleString("pt-BR")
+          : "-"
+      }
+    </small>
+  </td>
     `;
 
     const btnRemove = tr.querySelector("button");
