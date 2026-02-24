@@ -442,10 +442,11 @@ tr:hover {
     display: none;
   }
 
-  table,
-  tbody,
-  tr,
-  td {
+  /* 🔥 CORREÇÃO AQUI */
+  .table-wrapper table,
+  .table-wrapper tbody,
+  .table-wrapper tr,
+  .table-wrapper td {
     display: block;
     width: 100%;
   }
@@ -470,6 +471,15 @@ tr:hover {
     color: var(--text-muted);
     margin-bottom: 2px;
     font-size: 12px;
+    pointer-events: none; /* 🔥 impede conflito de toque */
+  }
+
+  /* 🔥 garante que inputs e selects fiquem clicáveis */
+  select,
+  input,
+  button {
+    position: relative;
+    z-index: 2;
   }
 }
 
