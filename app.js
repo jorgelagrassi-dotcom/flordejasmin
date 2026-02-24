@@ -867,7 +867,10 @@ if (countFilterProduct) {
 
 if (countLocation) {
   countLocation.addEventListener("change", () => {
-    loadCountTable();
+    // 🔥 atraso para evitar re-render imediato no mobile
+    setTimeout(() => {
+      loadCountTable();
+    }, 300);
   });
 }
 
@@ -975,7 +978,7 @@ function renderStockList() {
         await loadStock();
       });
     });
-}/* ==============================
+} /*==============================
    CADASTRO DE PRODUTO
 ============================== */
 btnAddProduct.addEventListener("click", async () => {
