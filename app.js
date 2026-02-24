@@ -1323,9 +1323,6 @@ function renderPodium(container, rankingArray, titleText) {
 }
 
 
-/* ==============================
-   CONTAGEM - Carregar tabela com filtro por produto e local
-============================== */
 async function loadCountTable() {
 
   const location = countLocation?.value || "";
@@ -1334,6 +1331,10 @@ async function loadCountTable() {
   if (!countTableBody) return;
 
   try {
+
+    // 🔥 oculta tabela antes de reconstruir
+    countTableBody.style.display = "none";
+
     const snap = await getDocs(collection(db, "stock"));
 
     let stockItems = snap.docs.map((d) => ({
@@ -1341,14 +1342,12 @@ async function loadCountTable() {
       ...d.data(),
     }));
 
-    // 🔎 FILTRO POR PRODUTO (busca parcial)
     if (productFilter) {
       stockItems = stockItems.filter((s) =>
         (s.productName || "").toUpperCase().includes(productFilter)
       );
     }
 
-    // 🔎 FILTRO POR LOCAL
     if (location) {
       stockItems = stockItems.filter((s) =>
         s.location === location && s.quantity > 0
@@ -1362,6 +1361,7 @@ async function loadCountTable() {
     countTableBody.innerHTML = "";
 
     stockItems.forEach((item) => {
+
       const tr = document.createElement("tr");
 
       tr.innerHTML = `
@@ -1409,7 +1409,6 @@ async function loadCountTable() {
         const product = PRODUCTS.find((p) => p.id === item.productId);
         if (!product) return;
 
-        // 🔻 Se diminuiu → gera venda automática HOTEL
         if (delta < 0) {
           const qtyVendida = Math.abs(delta);
           const total = qtyVendida * product.price;
@@ -1446,6 +1445,9 @@ async function loadCountTable() {
 
       countTableBody.appendChild(tr);
     });
+
+    // 🔥 mostra tabela depois que tudo está pronto
+    countTableBody.style.display = "";
 
   } catch (error) {
     console.error("Erro ao carregar tabela de contagem:", error);
