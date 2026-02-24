@@ -1333,119 +1333,118 @@ async function loadCountTable() {
   try {
 
     // 🔥 oculta tabela antes de reconstruir
-    countTableBody.style.display = "none";
+countTableBody.style.display = "none";
 
-    const snap = await getDocs(collection(db, "stock"));
+const snap = await getDocs(collection(db, "stock"));
 
-    let stockItems = snap.docs.map((d) => ({
-      id: d.id,
-      ...d.data(),
-    }));
+let stockItems = snap.docs.map((d) => ({
+  id: d.id,
+  ...d.data(),
+}));
 
-    if (productFilter) {
-      stockItems = stockItems.filter((s) =>
-        (s.productName || "").toUpperCase().includes(productFilter)
-      );
+if (productFilter) {
+  stockItems = stockItems.filter((s) =>
+    (s.productName || "").toUpperCase().includes(productFilter)
+  );
+}
+
+if (location) {
+  stockItems = stockItems.filter((s) =>
+    s.location === location
+  );
+}
+
+stockItems.sort((a, b) =>
+  a.productName.localeCompare(b.productName)
+);
+
+countTableBody.innerHTML = "";
+
+stockItems.forEach((item) => {
+
+  const tr = document.createElement("tr");
+
+  tr.innerHTML = `
+    <td>${item.productName}</td>
+
+    <td>
+      ${item.quantity}
+      <br>
+      <small>
+        ${
+          item.updatedAt
+            ? new Date(item.updatedAt).toLocaleString("pt-BR")
+            : "-"
+        }
+      </small>
+    </td>
+
+    <td>
+      <input 
+        type="number"
+        min="0"
+        placeholder="Digite a nova quantidade"
+        class="new-count-input"
+      >
+    </td>
+
+    <td>
+      <button class="action-btn action-edit-stock">
+        SALVAR
+      </button>
+    </td>
+  `;
+
+  const input = tr.querySelector(".new-count-input");
+  const btnSave = tr.querySelector(".action-edit-stock");
+
+  btnSave.addEventListener("click", async () => {
+
+    const newQty = parseInt(input.value);
+    if (isNaN(newQty)) return;
+
+    const delta = newQty - item.quantity;
+    if (delta === 0) return;
+
+    const product = PRODUCTS.find((p) => p.id === item.productId);
+    if (!product) return;
+
+    if (delta < 0) {
+      const qtyVendida = Math.abs(delta);
+      const total = qtyVendida * product.price;
+      const saleGroupId = generateSaleGroupId();
+
+      await addDoc(collection(db, "sales"), {
+        saleGroupId,
+        productId: product.id,
+        productName: product.name,
+        location: item.location,
+        originLocation: item.location,
+        quantity: qtyVendida,
+        unitPrice: product.price,
+        subtotal: total,
+        discount: 0,
+        total,
+        paymentMethod: "HOTEL",
+        note: "VENDA AUTOMÁTICA - CONTAGEM",
+        createdAt: todayISOFromLocal(countDateTime.value),
+      });
     }
 
-    if (location) {
-      stockItems = stockItems.filter((s) =>
-        s.location === location && s.quantity > 0
-      );
-    }
-
-    stockItems.sort((a, b) =>
-      a.productName.localeCompare(b.productName)
+    await updateStock(
+      product.id,
+      product.name,
+      item.location,
+      delta
     );
 
-    countTableBody.innerHTML = "";
+    await loadStock();
+    await loadDashboard();
+    await loadCountTable();
+  });
 
-    stockItems.forEach((item) => {
-
-      const tr = document.createElement("tr");
-
-      tr.innerHTML = `
-        <td>${item.productName}</td>
-
-        <td>
-          ${item.quantity}
-          <br>
-          <small>
-            ${
-              item.updatedAt
-                ? new Date(item.updatedAt).toLocaleString("pt-BR")
-                : "-"
-            }
-          </small>
-        </td>
-
-        <td>
-          <input 
-            type="number"
-            min="0"
-            placeholder="Digite a nova quantidade"
-            class="new-count-input"
-          >
-        </td>
-
-        <td>
-          <button class="action-btn action-edit-stock">
-            SALVAR
-          </button>
-        </td>
-      `;
-
-      const input = tr.querySelector(".new-count-input");
-      const btnSave = tr.querySelector(".action-edit-stock");
-
-      btnSave.addEventListener("click", async () => {
-
-        const newQty = parseInt(input.value);
-        if (isNaN(newQty)) return;
-
-        const delta = newQty - item.quantity;
-        if (delta === 0) return;
-
-        const product = PRODUCTS.find((p) => p.id === item.productId);
-        if (!product) return;
-
-        if (delta < 0) {
-          const qtyVendida = Math.abs(delta);
-          const total = qtyVendida * product.price;
-          const saleGroupId = generateSaleGroupId();
-
-          await addDoc(collection(db, "sales"), {
-            saleGroupId,
-            productId: product.id,
-            productName: product.name,
-            location: item.location,
-            originLocation: item.location,
-            quantity: qtyVendida,
-            unitPrice: product.price,
-            subtotal: total,
-            discount: 0,
-            total,
-            paymentMethod: "HOTEL",
-            note: "VENDA AUTOMÁTICA - CONTAGEM",
-            createdAt: todayISOFromLocal(countDateTime.value),
-          });
-        }
-
-        await updateStock(
-          product.id,
-          product.name,
-          item.location,
-          delta
-        );
-
-        await loadStock();
-        await loadDashboard();
-        await loadCountTable();
-      });
-
-      countTableBody.appendChild(tr);
-    });
-
+  countTableBody.appendChild(tr);
+});
     // 🔥 mostra tabela depois que tudo está pronto
     countTableBody.style.display = "";
 
