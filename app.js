@@ -1364,13 +1364,13 @@ stockItems.forEach((item) => {
   const tr = document.createElement("tr");
 
   tr.innerHTML = `
-    <td>
-      ${item.productName}
-      <br>
-      <small style="color:#6b7280; font-weight:600;">
-        ${item.location}
-      </small>
-    </td>
+  <td data-label="Produto">
+  ${item.productName}
+  <br>
+  <small style="color:#6b7280; font-weight:600;">
+    ${item.location}
+  </small>
+</td>
 
     <td>
       ${item.quantity}
