@@ -1146,12 +1146,11 @@ async function updateStock(productId, productName, location, delta) {
     });
   }
 }
-
-
 /* ==============================
    DASHBOARD
 ============================== */
 async function loadDashboard() {
+
   const productsSnap = await getDocs(collection(db, "products"));
   const salesSnap = await getDocs(collection(db, "sales"));
 
@@ -1170,8 +1169,92 @@ async function loadDashboard() {
   if (statProducts) statProducts.innerText = activeProducts;
   if (statSales) statSales.innerText = salesSnap.size;
   if (statSalesTotal) statSalesTotal.innerText = formatMoney(totalVendido);
-}
 
+  // 🔥 ===============================
+  // 📊 AGRUPAMENTO POR SEMANA
+  // ===============================
+
+  const weeks = {};
+
+  salesSnap.docs.forEach((d) => {
+
+    const sale = d.data();
+    if (!sale.createdAt) return;
+
+    const saleDate = new Date(sale.createdAt);
+
+    const day = saleDate.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+
+    const monday = new Date(saleDate);
+    monday.setDate(saleDate.getDate() + diffToMonday);
+    monday.setHours(0, 0, 0, 0);
+
+    const weekKey = monday.toISOString();
+
+    if (!weeks[weekKey]) {
+      weeks[weekKey] = {
+        monday: new Date(monday),
+        sales: 0,
+        total: 0
+      };
+    }
+
+    weeks[weekKey].sales++;
+    weeks[weekKey].total += sale.total || 0;
+
+  });
+
+  // 🔥 Ordena semanas da mais recente para a mais antiga
+  const orderedWeeks = Object.values(weeks)
+    .sort((a, b) => b.monday - a.monday);
+
+  const dashboardWeeks = document.getElementById("dashboardWeeks");
+  if (!dashboardWeeks) return;
+
+  dashboardWeeks.innerHTML = "";
+
+  const formatDate = (date) =>
+    date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+
+  orderedWeeks.forEach((week) => {
+
+    const sunday = new Date(week.monday);
+    sunday.setDate(week.monday.getDate() + 6);
+
+    const monthLabel = week.monday
+      .toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
+      .toUpperCase();
+
+    const weekHTML = `
+      <div class="grid-3" style="margin-top:20px;">
+
+        <div class="stat">
+          <span class="stat-title">
+            ${monthLabel}
+            <br>
+            ${formatDate(week.monday)} a ${formatDate(sunday)}
+          </span>
+        </div>
+
+        <div class="stat">
+          <span class="stat-title">Vendas</span>
+          <span class="stat-value">${week.sales}</span>
+        </div>
+
+        <div class="stat">
+          <span class="stat-title">Total</span>
+          <span class="stat-value">${formatMoney(week.total)}</span>
+        </div>
+
+      </div>
+    `;
+
+    dashboardWeeks.innerHTML += weekHTML;
+
+  });
+
+}
 /* ==============================
    RANKING
 ============================== */
