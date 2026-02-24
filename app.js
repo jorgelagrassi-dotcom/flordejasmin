@@ -866,14 +866,17 @@ if (countFilterProduct) {
 }
 
 if (countLocation) {
-  countLocation.addEventListener("change", () => {
-    // 🔥 atraso para evitar re-render imediato no mobile
+  countLocation.addEventListener("change", (e) => {
+
+    // 🔥 força o fechamento do select antes do re-render
+    e.target.blur();
+
     setTimeout(() => {
       loadCountTable();
-    }, 300);
+    }, 100);
+
   });
 }
-
 function renderProductList() {
   productList.innerHTML = "";
 
