@@ -1263,6 +1263,7 @@ async function loadRanking() {
   const top3Container = document.getElementById("rankingTop3");
   const imasContainer = document.getElementById("rankingImas");
   const listContainer = document.getElementById("rankingList");
+  const rankingMonthInput = document.getElementById("rankingMonth");
 
   if (!top3Container || !imasContainer || !listContainer) return;
 
@@ -1273,7 +1274,28 @@ async function loadRanking() {
   try {
 
     const snap = await getDocs(collection(db, "sales"));
-    const sales = snap.docs.map(d => d.data());
+    let sales = snap.docs.map(d => d.data());
+
+    /* ==============================
+       🔥 FILTRO POR MÊS
+    ============================== */
+    if (rankingMonthInput && rankingMonthInput.value) {
+
+      const [year, month] = rankingMonthInput.value.split("-");
+
+      sales = sales.filter(sale => {
+
+        if (!sale.createdAt) return false;
+
+        const date = new Date(sale.createdAt);
+
+        return (
+          date.getFullYear() == year &&
+          date.getMonth() == (month - 1)
+        );
+      });
+
+    }
 
     const ranking = {};
     const rankingImas = {};
@@ -1293,7 +1315,7 @@ async function loadRanking() {
       }
       ranking[id].totalQty += sale.quantity;
 
-      // Ranking Ímãs (somente começando com)
+      // Ranking Ímãs
       if (
         nameLower.startsWith("ima") ||
         nameLower.startsWith("imã")
@@ -1310,56 +1332,51 @@ async function loadRanking() {
     });
 
     const rankingArray = Object.values(ranking)
-    .sort((a, b) => b.totalQty - a.totalQty);
+      .sort((a, b) => b.totalQty - a.totalQty);
 
-  const rankingImasArray = Object.values(rankingImas)
-    .sort((a, b) => b.totalQty - a.totalQty);
+    const rankingImasArray = Object.values(rankingImas)
+      .sort((a, b) => b.totalQty - a.totalQty);
 
-  top3Container.innerHTML = "";
-  imasContainer.innerHTML = "";
-  listContainer.innerHTML = "";
+    top3Container.innerHTML = "";
+    imasContainer.innerHTML = "";
+    listContainer.innerHTML = "";
 
-  /* ===== TOP 3 GERAL (COM EMPATE) ===== */
-  renderPodium(top3Container, rankingArray, "📊 Top 3 Geral");
+    renderPodium(top3Container, rankingArray, "📊 Top 3 Geral");
+    renderPodium(imasContainer, rankingImasArray, "🧲 Top 3 Ímãs");
 
-  /* ===== TOP 3 ÍMÃS (COM EMPATE) ===== */
-  renderPodium(imasContainer, rankingImasArray, "🧲 Top 3 Ímãs");
+    const rest = rankingArray.slice(3);
 
-  /* ===== LISTA GERAL ===== */
-  const rest = rankingArray.slice(3);
+    if (rest.length > 0) {
 
-  if (rest.length > 0) {
+      const title = document.createElement("h3");
+      title.innerText = "📋 Ranking Geral Completo";
+      listContainer.appendChild(title);
 
-    const title = document.createElement("h3");
-    title.innerText = "📋 Ranking Geral Completo";
-    listContainer.appendChild(title);
+      const list = document.createElement("div");
+      list.className = "ranking-list";
 
-    const list = document.createElement("div");
-    list.className = "ranking-list";
+      rest.forEach((item, index) => {
 
-    rest.forEach((item, index) => {
+        const row = document.createElement("div");
+        row.className = "ranking-row";
 
-      const row = document.createElement("div");
-      row.className = "ranking-row";
+        row.innerHTML = `
+          <span class="position">${index + 4}º</span>
+          <span class="name">${item.productName}</span>
+          <span class="qty">${item.totalQty} un</span>
+        `;
 
-      row.innerHTML = `
-        <span class="position">${index + 4}º</span>
-        <span class="name">${item.productName}</span>
-        <span class="qty">${item.totalQty} un</span>
-      `;
+        list.appendChild(row);
+      });
 
-      list.appendChild(row);
-    });
+      listContainer.appendChild(list);
+    }
 
-    listContainer.appendChild(list);
+  } catch (error) {
+    console.error("Erro no ranking:", error);
+    top3Container.innerHTML = "Erro ao carregar ranking.";
   }
-
-} catch (error) {
-  console.error("Erro no ranking:", error);
-  top3Container.innerHTML = "Erro ao carregar ranking.";
 }
-}
-
 /* ==============================
    FUNÇÃO AUXILIAR PÓDIO (COM EMPATES)
 ============================== */
@@ -1880,6 +1897,17 @@ async function deleteSale(sale) {
     alert("Erro ao excluir venda.");
   }
 }
+
+/* ==============================
+   EVENTO SELETOR DE MÊS - RANKING
+============================== */
+document.addEventListener("DOMContentLoaded", () => {
+  const rankingMonth = document.getElementById("rankingMonth");
+  if (rankingMonth) {
+    rankingMonth.addEventListener("change", loadRanking);
+  }
+});
+
 // ==============================
 // 🔥 FUNÇÃO TEMPORÁRIA - LIMPAR BANCO
 // ==============================
