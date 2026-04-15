@@ -4,7 +4,8 @@ import {
     getDocs,
     doc,
     updateDoc,
-    getDoc
+    getDoc,
+    addDoc
   } from "./firebase.js";
   
   let STOCK = [];
@@ -16,7 +17,35 @@ import {
   const msg = document.getElementById("msg");
   
   /* ==============================
-     CARREGAR ESTOQUE BALCÃO
+     GERAR ID IGUAL AO SISTEMA
+  ============================== */
+  function generateSaleGroupId() {
+    const now = new Date();
+    const time = now.getTime().toString(36);
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `GRP-${time}-${random}`;
+  }
+  
+  /* ==============================
+     CONTROLE DE ESTOQUE (MESMO PADRÃO)
+  ============================== */
+  async function updateStock(productId, productName, location, delta) {
+    const stockRef = doc(db, "stock", `${productId}_${location}`);
+    const snap = await getDoc(stockRef);
+  
+    if (!snap.exists()) return;
+  
+    const currentQty = snap.data().quantity || 0;
+    const newQty = currentQty + delta;
+  
+    await updateDoc(stockRef, {
+      quantity: newQty,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+  
+  /* ==============================
+     CARREGAR ESTOQUE
   ============================== */
   async function loadStock() {
   
@@ -31,10 +60,12 @@ import {
   ============================== */
   function render() {
   
+    const location = document.getElementById("saleLocation").value;
+  
     list.innerHTML = "";
   
     STOCK
-      .filter(s => s.location === "BALCAO")
+      .filter(s => s.location === location)
       .filter(s => showZero ? true : s.quantity > 0)
       .sort((a, b) => a.productName.localeCompare(b.productName))
       .forEach(s => {
@@ -53,6 +84,11 @@ import {
   }
   
   /* ==============================
+     TROCAR LOCAL
+  ============================== */
+  document.getElementById("saleLocation").addEventListener("change", render);
+  
+  /* ==============================
      TOGGLE ZERADOS
   ============================== */
   btnToggleZero.addEventListener("click", () => {
@@ -64,12 +100,16 @@ import {
   });
   
   /* ==============================
-     SALVAR TUDO
+     SALVAR TUDO (IGUAL SISTEMA)
   ============================== */
   btnSaveAll.addEventListener("click", async () => {
   
     const inputs = document.querySelectorAll("input[data-id]");
+    const location = document.getElementById("saleLocation").value;
   
+    let saleCart = [];
+  
+    // 🔹 monta carrinho
     for (const input of inputs) {
   
       const newValue = parseInt(input.value);
@@ -80,16 +120,95 @@ import {
   
       if (!snap.exists()) continue;
   
-      const current = snap.data().quantity || 0;
+      const data = snap.data();
+      const current = data.quantity || 0;
       const delta = newValue - current;
   
-      await updateDoc(stockRef, {
-        quantity: newValue,
-        updatedAt: new Date().toISOString()
-      });
+      if (delta < 0) {
+  
+        const productSnap = await getDoc(doc(db, "products", data.productId));
+        if (!productSnap.exists()) continue;
+  
+        const product = productSnap.data();
+  
+        saleCart.push({
+          productId: data.productId,
+          productName: data.productName,
+          quantity: Math.abs(delta),
+          unitPrice: product.price || 0,
+          location: location,
+          originLocation: location
+        });
+      }
     }
   
-    msg.innerText = "✅ Contagem salva com sucesso!";
+    // 🔴 sem venda
+    if (saleCart.length === 0) {
+      msg.innerText = "Nenhuma venda detectada.";
+    }
+  
+    const saleGroupId = generateSaleGroupId();
+  
+    let subtotalGeral = 0;
+    saleCart.forEach(item => {
+      subtotalGeral += item.quantity * item.unitPrice;
+    });
+  
+    // 🔥 salva vendas
+    for (const item of saleCart) {
+  
+      const itemSubtotal = item.quantity * item.unitPrice;
+  
+      await addDoc(collection(db, "sales"), {
+        saleGroupId,
+        productId: item.productId,
+        productName: item.productName,
+        location: item.location,
+        originLocation: item.originLocation,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        subtotal: itemSubtotal,
+        discount: 0,
+        total: itemSubtotal,
+        paymentMethod: "CONTAGEM",
+        note: "Contagem Mobile",
+        createdAt: new Date().getTime(),
+      });
+  
+      await updateStock(
+        item.productId,
+        item.productName,
+        item.location,
+        -item.quantity
+      );
+    }
+  
+    // 🔵 entradas de estoque
+    for (const input of inputs) {
+  
+      const newValue = parseInt(input.value);
+      if (isNaN(newValue)) continue;
+  
+      const stockRef = doc(db, "stock", input.dataset.id);
+      const snap = await getDoc(stockRef);
+  
+      if (!snap.exists()) continue;
+  
+      const data = snap.data();
+      const current = data.quantity || 0;
+      const delta = newValue - current;
+  
+      if (delta > 0) {
+        await updateStock(
+          data.productId,
+          data.productName,
+          data.location,
+          delta
+        );
+      }
+    }
+  
+    msg.innerText = "✅ Venda registrada + estoque atualizado!";
     loadStock();
   });
   
